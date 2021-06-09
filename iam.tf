@@ -2,6 +2,26 @@
 # Data
 # =========================================================
 
+data "aws_iam_policy_document" "bastion_events" {
+    statement {
+        sid    = "Limited"
+        effect = "Allow"
+
+        actions = [
+            "events:PutEvents",
+        ]
+
+        resources = [ "arn:aws:events:${local.region_name}:${local.account_id}:event-bus/default" ]
+
+        condition {
+            test     = "StringEquals"
+            variable = "events:source"
+
+            values = [ "bastion.aws.illinois.edu" ]
+        }
+    }
+}
+
 data "aws_iam_policy_document" "bastion_ssm_parameters" {
     statement {
         sid    = "Global"
@@ -103,6 +123,12 @@ resource "aws_iam_role" "bastion" {
     assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 }
 
+resource "aws_iam_role_policy" "bastion_events" {
+    name   = "events"
+    role   = aws_iam_role.bastion.id
+    policy = data.aws_iam_policy_document.bastion_events.json
+}
+
 resource "aws_iam_role_policy" "bastion_ssm_parameters" {
     name   = "ssm-parameters"
     role   = aws_iam_role.bastion.id
@@ -126,6 +152,7 @@ resource "aws_iam_role_policy_attachment" "bastion_ssm" {
 
 resource "time_sleep" "bastion_role" {
     triggers = {
+        events         = aws_iam_role_policy.bastion_events.id
         ssm            = aws_iam_role_policy_attachment.bastion_ssm.id
         ssm_parameters = aws_iam_role_policy.bastion_ssm_parameters.id
         logs           = aws_iam_role_policy.bastion_logs.id
