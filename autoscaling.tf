@@ -20,7 +20,7 @@ data "aws_ami" "amazon_linux2" {
 }
 
 # =========================================================
-# Data
+# Data: Cloud Init
 # =========================================================
 
 data "cloudinit_config" "bastion_userdata" {
@@ -30,8 +30,10 @@ data "cloudinit_config" "bastion_userdata" {
         content      = templatefile(
             "templates/bastion-cloud-init-configscript.sh.tpl",
             {
-                region    = data.aws_region.current.name
-                contact   = var.contact
+                region   = data.aws_region.current.name
+                contact  = var.contact
+                asg_name = local.asg_name
+
                 homefs_id = aws_efs_file_system.homefs.id
 
                 loggroup_prefix             = local.loggroup_prefix
@@ -83,6 +85,14 @@ EOF
             }
         )
     }
+}
+
+# =========================================================
+# Locals
+# =========================================================
+
+locals {
+    asg_name = "${local.name_prefix}bastion"
 }
 
 # =========================================================
@@ -180,7 +190,7 @@ resource "aws_autoscaling_group" "bastion" {
         time_sleep.bastion_role,
     ]
 
-    name             = "${local.name_prefix}bastion"
+    name             = local.asg_name
     min_size         = 1
     max_size         = 2
     desired_capacity = 1

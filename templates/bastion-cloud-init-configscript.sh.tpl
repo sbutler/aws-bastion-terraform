@@ -1,3 +1,11 @@
+file=/etc/opt/illinois/cloud-init/asg.conf
+mkdir -p "$(dirname "$file")"
+cat << EOF > "$file"
+asg_name=${asg_name}
+EOF
+chmod 0644 "$file"
+chown root:root "$file"
+
 file=/etc/opt/illinois/cloud-init/efs/homefs
 mkdir -p "$(dirname "$file")"
 cat << EOF > "$file"
