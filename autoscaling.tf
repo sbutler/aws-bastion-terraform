@@ -62,8 +62,9 @@ data "cloudinit_config" "bastion_userdata" {
         filename     = "includes1.txt"
         content_type = "text/x-include-url"
         content = <<EOF
+https://static.ics.illinois.edu/cloud-init/20210608/init.sh
 https://static.ics.illinois.edu/cloud-init/20210608/efs.sh
-https://static.ics.illinois.edu/cloud-init/20210608/awscli.sh
+https://static.ics.illinois.edu/cloud-init/20210608/extra-eni.sh
 https://static.ics.illinois.edu/cloud-init/20210608/ec2logs.yml
 https://static.ics.illinois.edu/cloud-init/20210608/yumcron.yml
 https://static.ics.illinois.edu/cloud-init/20210608/ssh.sh
