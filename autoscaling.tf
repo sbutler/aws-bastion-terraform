@@ -30,9 +30,10 @@ data "cloudinit_config" "bastion_userdata" {
         content      = templatefile(
             "templates/bastion-cloud-init-configscript.sh.tpl",
             {
-                region   = data.aws_region.current.name
-                contact  = var.contact
-                asg_name = local.asg_name
+                region      = data.aws_region.current.name
+                contact     = var.contact
+                asg_name    = local.asg_name
+                prompt_name = "${local.name_prefix}bastion"
 
                 homefs_id = aws_efs_file_system.homefs.id
 
@@ -69,21 +70,11 @@ https://static.ics.illinois.edu/cloud-init/20210608/ssh.sh
 https://static.ics.illinois.edu/cloud-init/20210608/sss.sh
 EOF
     }
+
     part {
         filename     = "config-bastion.yml"
         content_type = "text/cloud-config"
         content      = file("files/cloud-init/config-bastion.yml")
-    }
-
-    part {
-        filename     = "config-prompt.yml"
-        content_type = "text/cloud-config"
-        content      = templatefile(
-            "templates/cloud-init/config-prompt.yml.tpl",
-            {
-                prompt_name = "${local.name_prefix}bastion"
-            }
-        )
     }
 }
 
