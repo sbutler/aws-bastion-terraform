@@ -82,6 +82,8 @@ module "lambda_associateEIP" {
 
     environment_variables = {
         EIP_ALLOCATION_ID = aws_eip.bastion.id
+
+        LOGGING_LEVEL = local.is_debug ? "DEBUG" : "INFO"
     }
 
     create_current_version_allowed_triggers = false

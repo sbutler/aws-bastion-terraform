@@ -62,6 +62,7 @@ locals {
 
 locals {
     name_prefix = "${var.project}-"
+    is_debug    = var.environment != "prod"
 
     loggroup_prefix      = "${local.name_prefix}bastion/"
     metrics_namespace    = "${local.name_prefix}bastion"

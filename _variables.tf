@@ -19,8 +19,13 @@ variable "data_classification" {
 
 variable "environment" {
     type        = string
-    description = "Production, Test, Development, Green, Blue, etc."
+    description = "Environment name (prod, test, dev, or poc)."
     default     = ""
+
+    validation {
+        condition     = var.environment == "" || contains(["prod", "test", "dev", "poc"], var.environment)
+        error_message = "Value must be one of: prod, test, dev, or poc."
+    }
 }
 
 variable "project" {
