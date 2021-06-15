@@ -54,6 +54,12 @@ data "cloudinit_config" "bastion_userdata" {
                 sss_bindpass_parameter = "/${local.sss_parameter_prefix}bind-password"
 
                 ssh_hostkeys_path = "/${local.ssh_parameter_prefix}"
+
+                extra_enis_prefix_list_ids = join(" ", formatlist(
+                    "[eth%d]='%s'",
+                    [ for i in range(length(local.extra_enis)) : i + 1 ],
+                    [ for o in local.extra_enis : join(" ", o.prefix_list_ids) ]
+                ))
             }
         )
     }
@@ -64,7 +70,7 @@ data "cloudinit_config" "bastion_userdata" {
         content = <<EOF
 https://static.ics.illinois.edu/cloud-init/20210608/init.sh
 https://static.ics.illinois.edu/cloud-init/20210608/efs.sh
-https://static.ics.illinois.edu/cloud-init/20210608/extra-eni.sh
+https://static.ics.illinois.edu/cloud-init/20210608/extra-enis.sh
 https://static.ics.illinois.edu/cloud-init/20210608/ec2logs.yml
 https://static.ics.illinois.edu/cloud-init/20210608/yumcron.yml
 https://static.ics.illinois.edu/cloud-init/20210608/ssh.sh
