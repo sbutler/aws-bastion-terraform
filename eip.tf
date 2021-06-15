@@ -79,6 +79,7 @@ module "lambda_associateEIP" {
     description   = "Associate an EIP with a bastion instance."
     handler       = "associate_eip.lambda_handler"
     runtime       = "python3.8"
+    timeout       = 30
 
     environment_variables = {
         EIP_ALLOCATION_ID = aws_eip.bastion.id
@@ -115,6 +116,7 @@ resource "aws_cloudwatch_event_rule" "lambda_associateEIP_BastionInitializationS
     "detail-type": [ "Bastion Initialization Status" ],
     "detail": {
         "autoScalingGroupName": [ "${local.asg_name}" ],
+        "lastStatus": [ "efs", "ssh", "sss" ],
         "status": {
             "efs": [ "finished" ],
             "ssh": [ "finished" ],
