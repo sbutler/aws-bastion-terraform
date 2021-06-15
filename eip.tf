@@ -10,6 +10,7 @@ data "aws_iam_policy_document" "lambda_associateEIP" {
         actions = [
             "ec2:DescribeAddresses",
             "ec2:DescribeInstances",
+            "ec2:DescribeNetworkInterfaces",
         ]
 
         resources = [ "*" ]
