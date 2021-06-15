@@ -84,7 +84,9 @@ EOF
 # =========================================================
 
 locals {
-    asg_name = "${local.name_prefix}bastion"
+    asg_name            = "${local.name_prefix}bastion"
+    instance_name       = "${local.name_prefix}bastion"
+    security_group_name = "${local.name_prefix}bastion"
 }
 
 # =========================================================
@@ -117,7 +119,7 @@ resource "aws_security_group" "bastion" {
     }
 
     tags = {
-        Name = "${local.name_prefix}bastion"
+        Name = local.security_group_name
     }
 }
 
@@ -157,7 +159,7 @@ resource "aws_launch_template" "bastion" {
         resource_type = "instance"
         tags = merge(
             local.default_tags,
-            { Name = "${local.name_prefix}bastion" },
+            { Name = local.instance_name },
         )
     }
 
