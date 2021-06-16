@@ -153,9 +153,10 @@ locals {
             prefix_list_ids = [ for v_idx, v in o.prefix_list_names : data.aws_ec2_managed_prefix_list.extra_enis["${o_idx}.${v_idx}"].id ]
         }
     )]
-    extra_enis_subnet_ids      = [ for s in data.aws_subnet.extra_enis: s.id ]
-    extra_enis_subnet_arns     = [ for s in data.aws_subnet.extra_enis: s.arn ]
-    extra_enis_prefix_list_ids = [ for p in data.aws_ec2_managed_prefix_list.extra_enis : p.id ]
+    extra_enis_subnet_ids       = [ for s in data.aws_subnet.extra_enis: s.id ]
+    extra_enis_subnet_arns      = [ for s in data.aws_subnet.extra_enis: s.arn ]
+    extra_enis_prefix_list_ids  = [ for p in data.aws_ec2_managed_prefix_list.extra_enis : p.id ]
+    extra_enis_prefix_list_arns = [ for p in data.aws_ec2_managed_prefix_list.extra_enis : p.arn ]
     #extra_enis_vpc_ids         = distinct(flatten(local.extra_enis[*].vpc_ids))
     has_extra_enis             = length(local.extra_enis) > 0
 }

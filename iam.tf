@@ -26,7 +26,7 @@ data "aws_iam_policy_document" "bastion_extra_enis" {
     count = local.has_extra_enis ? 1 : 0
 
     dynamic "statement" {
-        for_each = length(local.extra_enis_prefix_list_ids) > 0 ? [ local.extra_enis_prefix_list_ids ] : []
+        for_each = length(local.extra_enis_prefix_list_arns) > 0 ? [ local.extra_enis_prefix_list_arns ] : []
 
         content {
             sid    = "PrefixLists"
@@ -34,12 +34,7 @@ data "aws_iam_policy_document" "bastion_extra_enis" {
 
             actions = [ "ec2:GetManagedPrefixListEntries" ]
 
-            resources = formatlist(
-                "arn:aws:ec2:%s:%s:prefix-list/%s",
-                local.region_name,
-                local.account_id,
-                statement.value
-            )
+            resources = statement.value
         }
     }
 
