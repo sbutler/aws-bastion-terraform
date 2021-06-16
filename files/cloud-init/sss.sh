@@ -109,16 +109,17 @@ systemctl enable sssd
 systemctl restart sssd
 
 echo "INFO: configuring sshd for using sss authorized keys"
-cfg_file=/etc/ssh/sshd_config
+
+cfg_file=$(mktemp -t sshd_config.XXXXXXXX); tmpfiles+=("$cfg_file")
+cp /etc/ssh/sshd_config "$cfg_file"
 restart_sshd=no
 if ! egrep -q '^\s*AuthorizedKeysCommandUser\s+(\S+)' "$cfg_file"; then
     echo "INFO: adding AuthorizedKeysCommandUser nobody"
-    sed -i.bak-illinois-sss1 -re '/^\s*# Example of overriding settings on a per-user basis/i AuthorizedKeysCommandUser nobody' "$cfg_file"
+    sed -re '/^\s*# Example of overriding settings on a per-user basis/i AuthorizedKeysCommandUser nobody' "$cfg_file"
     restart_sshd=yes
 fi
 if ! egrep -q '^\s*# ADDED BY SSS CONFIGURATION' "$cfg_file"; then
     echo "INFO: adding sss authorized keys for domain users"
-    cp "$cfg_file" "$cfg_file.bak-illinois-sss2"
     cat >> "$cfg_file" <<EOF
 
 # ADDED BY SSS CONFIGURATION
@@ -129,18 +130,34 @@ EOF
 fi
 
 if [[ $restart_sshd = "yes" ]]; then
+    if ! sshd -t -f "$cfg_file"; then
+        echo "ERROR: unable to validate sshd_config"
+        exit 1
+    fi
+    cp "$cfg_file" /etc/ssh/sshd_config
+    chown root:root /etc/ssh/sshd_config
+    chmod 0600 /etc/ssh/sshd_config
+
     echo "INFO: restarting sshd"
     systemctl restart sshd
 fi
 
 if [[ -n $sss_admin_groups ]]; then
     echo "INFO: setting sudo admin groups"
-    cat > "/etc/sudoers.d/illinois" <<EOF
+    cfg_file=$(mktemp -t illinois-sudoers.XXXXXXXX); tmpfiles+=("$cfg_file")
+    cat > "$cfg_file" <<EOF
 User_Alias ILLINOIS_ADMINS = ${sss_admin_groups}
 ILLINOIS_ADMINS  ALL=(ALL) NOPASSWD: ALL
 EOF
-    chown root:root /etc/sudoers.d/illinois
-    chmod 0640 /etc/sudoers.d/illinois
+
+    if visudo -cf "$cfg_file"; then
+        cp "$cfg_file" /etc/sudoers.d/illinois
+        chown root:root /etc/sudoers.d/illinois
+        chmod 0640 /etc/sudoers.d/illinois
+    else
+        echo "ERROR: unable to validate illinois sudoers file"
+        exit 1
+    fi
 fi
 
 illinois_init_status sss finished

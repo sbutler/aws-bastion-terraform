@@ -39,6 +39,10 @@ for p in "${ssh_hostkeys_lines[@]}"; do
 done
 
 echo "INFO: restarting sshd"
+if ! sshd -t; then
+    echo "ERROR: unable to validate sshd_config"
+    exit 1
+fi
 systemctl restart sshd
 
 illinois_init_status ssh finished
