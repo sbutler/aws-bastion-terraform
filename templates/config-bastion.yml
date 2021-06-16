@@ -1,6 +1,7 @@
 #cloud-config
 
 timezone: America/Chicago
+fqdn: ${hostname}
 
 packages:
     - git

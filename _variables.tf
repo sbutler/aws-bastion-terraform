@@ -37,6 +37,16 @@ variable "project" {
 # Bastion
 # =========================================================
 
+variable "hostname" {
+    type        = string
+    description = "Bastion hostname, as configured on the instance."
+
+    validation {
+        condition     = can(regex("^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,61}[a-zA-Z0-9])?\\.[a-zA-Z]{2,}$", var.hostname))
+        error_message = "The value must be a valid hostname."
+    }
+}
+
 variable "instance_type" {
     type        = string
     description = "Bastion instance type."

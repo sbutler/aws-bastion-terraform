@@ -52,6 +52,16 @@ EOF
 chmod 0644 "$file"
 chown root:root "$file"
 
+file=/etc/opt/illinois/cloud-init/falcon-sensor.conf
+mkdir -p "$(dirname "$file")"
+cat << "EOF" > "$file"
+falcon_sensor_package="${falcon_sensor_package}"
+falcon_sensor_cid_path="${falcon_sensor_cid_path}"
+EOF
+chmod 0644 "$file"
+chown root:root "$file"
+
+
 if ! egrep -q '^\s*root:' /etc/aliases; then
     echo "root: ${contact}" >> /etc/aliases
     newaliases

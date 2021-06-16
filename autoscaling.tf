@@ -39,7 +39,7 @@ data "cloudinit_config" "bastion_userdata" {
         filename     = "init.sh"
         content_type = "text/cloud-boothook"
         content      = templatefile(
-            "templates/bastion-cloud-init-configscript.sh.tpl",
+            "templates/bastion-cloud-init-configscript.sh",
             {
                 region      = data.aws_region.current.name
                 contact     = var.contact
@@ -86,13 +86,16 @@ https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ec2logs.y
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/yumcron.yml
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ssh.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/sss.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/falcon-sensor.sh
 EOF
     }
 
     part {
         filename     = "config-bastion.yml"
         content_type = "text/cloud-config"
-        content      = file("files/cloud-init/config-bastion.yml")
+        content      = templatefile("templates/config-bastion.yml", {
+            hostname = var.hostname
+        })
     }
 }
 
