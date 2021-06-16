@@ -1,0 +1,176 @@
+## template: jinja
+#cloud-config
+
+packages:
+    - wget
+
+runcmd:
+    - /root/install-cwagent.sh
+
+write_files:
+    - path: /root/install-cwagent.sh
+      owner: root:root
+      permissions: '0700'
+      content: |
+        #!/bin/bash
+
+        set -e
+
+        cleanup () {
+            [[ -e $rpmfile ]] && rm -- "$rpmfile"
+        }
+        trap cleanup exit
+
+        rpmfile=$(mktemp -t --suffix .rpm amazon-cloudwatch-agent.XXXXXXXX)
+        wget -O "$rpmfile" "https://s3.{{v1.region}}.amazonaws.com/amazoncloudwatch-agent-{{v1.region}}/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm"
+
+        yum_maxwait=40
+        while [[ -e /var/run/yum.pid && $yum_maxwait -gt 0 ]] && kill -CHLD $(</var/run/yum.pid); do
+            echo "Waiting for another yum process..."
+            sleep 5
+            (( yum_maxwait-- )) || :
+        done
+        yum install -y "$rpmfile"
+
+        [[ -e /etc/opt/illinois/cloud-init/ec2logs.conf ]] && . /etc/opt/illinois/cloud-init/ec2logs.conf
+
+        : ${loggroup_prefix=ec2/}
+        : ${metrics_collection_interval:=60}
+        : ${metrics_namespace:=CWAgent}
+        : ${net_resources:=*}
+
+        net_resources_json=$(
+            IFS=,
+            read -ra _arr <<< "$net_resources"
+            for i in "${!_arr[@]}"; do
+                _arr[$i]="\"${_arr[$i]}\""
+            done
+            echo "[ ${_arr[*]} ]"
+        )
+
+        cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<HERE
+        {
+            "agent": {
+                "metrics_collection_interval": ${metrics_collection_interval},
+                "run_as_user": "root",
+                "region": "{{v1.region}}",
+                "omit_hostname": true
+            },
+            "logs": {
+                "logs_collected": {
+                    "files": {
+                        "collect_list": [
+                            {
+                                "file_path": "/var/log/audit/audit.log*",
+                                "log_group_name": "/${loggroup_prefix}var/log/audit/audit.log",
+                                "log_stream_name": "{instance_id}"
+                            },
+                            {
+                                "file_path": "/var/log/boot.log*",
+                                "log_group_name": "/${loggroup_prefix}var/log/boot.log",
+                                "log_stream_name": "{instance_id}"
+                            },
+                            {
+                                "file_path": "/var/log/cloud-init.log",
+                                "timezone": "Local",
+                                "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
+                                "log_group_name": "/${loggroup_prefix}var/log/cloud-init.log",
+                                "log_stream_name": "{instance_id}"
+                            },
+                            {
+                                "file_path": "/var/log/cron*",
+                                "timezone": "Local",
+                                "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
+                                "log_group_name": "/${loggroup_prefix}var/log/cron",
+                                "log_stream_name": "{instance_id}"
+                            },
+                            {
+                                "file_path": "/var/log/messages*",
+                                "timezone": "Local",
+                                "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
+                                "log_group_name": "/${loggroup_prefix}var/log/messages",
+                                "log_stream_name": "{instance_id}"
+                            },
+                            {
+                                "file_path": "/var/log/secure*",
+                                "timezone": "Local",
+                                "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
+                                "log_group_name": "/${loggroup_prefix}var/log/secure",
+                                "log_stream_name": "{instance_id}"
+                            }
+                        ]
+                    }
+                }
+            },
+            "metrics": {
+                "namespace": "${metrics_namespace}",
+                "append_dimensions": {
+                    "AutoScalingGroupName": "\${aws:AutoScalingGroupName}",
+                    "InstanceId": "\${aws:InstanceId}"
+                },
+                "aggregation_dimensions": [
+                    ["AutoScalingGroupName"]
+                ],
+                "metrics_collected": {
+                    "cpu": {
+                        "measurement": [
+                            "usage_idle",
+                            "usage_iowait",
+                            "usage_user",
+                            "usage_system"
+                        ],
+                        "resources": [ "*" ],
+                        "totalcpu": true
+                    },
+                    "disk": {
+                        "measurement": [
+                            "free",
+                            "used",
+                            "used_percent",
+                            "inodes_free",
+                            "inodes_used"
+                        ],
+                        "resources": [ "*" ],
+                        "drop_device": true,
+                        "ignore_file_system_types": [
+                            "sysfs",
+                            "devtmpfs",
+                            "tmpfs",
+                            "nfs4",
+                            "overlay"
+                        ]
+                    },
+                    "diskio": {
+                        "measurement": [
+                            "io_time"
+                        ],
+                        "resources": [ "*" ]
+                    },
+                    "mem": {
+                        "measurement": [
+                            "available",
+                            "available_percent",
+                            "free",
+                            "used",
+                            "used_percent"
+                        ]
+                    },
+                    "net": {
+                        "measurement": [
+                            "drop_in",
+                            "drop_out",
+                            "err_in",
+                            "err_out"
+                        ],
+                        "resources": ${net_resources_json}
+                    }
+                }
+            }
+        }
+        HERE
+        chown root:root /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+        chmod 0644 /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+        /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
+
+merge_type: 'list(append)+dict(recurse_array)+str()'

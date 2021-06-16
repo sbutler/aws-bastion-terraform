@@ -24,6 +24,17 @@ data "aws_ami" "amazon_linux2" {
 # =========================================================
 
 data "cloudinit_config" "bastion_userdata" {
+    depends_on = [
+        aws_s3_bucket_object.assets_cloudinit_ec2logsyml,
+        aws_s3_bucket_object.assets_cloudinit_efssh,
+        aws_s3_bucket_object.assets_cloudinit_extraenissh,
+        aws_s3_bucket_object.assets_cloudinit_initsh,
+        aws_s3_bucket_object.assets_cloudinit_s3downloadsh,
+        aws_s3_bucket_object.assets_cloudinit_sshsh,
+        aws_s3_bucket_object.assets_cloudinit_ssssh,
+        aws_s3_bucket_object.assets_cloudinit_yumcronyml,
+    ]
+
     part {
         filename     = "init.sh"
         content_type = "text/cloud-boothook"
@@ -68,13 +79,13 @@ data "cloudinit_config" "bastion_userdata" {
         filename     = "includes1.txt"
         content_type = "text/x-include-url"
         content = <<EOF
-https://static.ics.illinois.edu/cloud-init/20210608/init.sh
-https://static.ics.illinois.edu/cloud-init/20210608/efs.sh
-https://static.ics.illinois.edu/cloud-init/20210608/extra-enis.sh
-https://static.ics.illinois.edu/cloud-init/20210608/ec2logs.yml
-https://static.ics.illinois.edu/cloud-init/20210608/yumcron.yml
-https://static.ics.illinois.edu/cloud-init/20210608/ssh.sh
-https://static.ics.illinois.edu/cloud-init/20210608/sss.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/init.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/efs.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/extra-enis.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ec2logs.yml
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/yumcron.yml
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ssh.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/sss.sh
 EOF
     }
 
