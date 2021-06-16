@@ -75,6 +75,17 @@ variable "allow_groups" {
     default     = []
 }
 
+variable "falcon_sensor_package" {
+    type        = string
+    description = "S3 URL (s3://bucket/path/to/sensor.rpm) to download the CrowdStrike Falcon Sensor."
+    default     = null
+
+    validation {
+        condition     = var.falcon_sensor_package == null || can(regex("^s3://(?P<bucket>[a-z0-9][a-z0-9.-]+[a-z0-9.])/(?P<key>.+\\.rpm)$", var.falcon_sensor_package))
+        error_message = "The S3 URL must be null or of the form \"s3://bucket/path/to/sensor.rpm\"."
+    }
+}
+
 variable "public_subnets" {
     type        = list(string)
     description = "Subnet names for public access where the primary IP will be."

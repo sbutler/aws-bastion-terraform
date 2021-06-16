@@ -69,6 +69,15 @@ locals {
     name_prefix = "${var.project}-"
     is_debug    = var.environment != "prod"
 
+    falcon_sensor_package_match = var.falcon_sensor_package == null ? {
+        bucket = null
+        key    = null
+    } : regex("^s3://(?P<bucket>[a-z0-9][a-z0-9.-]+[a-z0-9.])/(?P<key>.+\\.rpm)$", var.falcon_sensor_package)
+    falcon_sensor_package_bucket   = lookup(local.falcon_sensor_package_match, "bucket", null)
+    falcon_sensor_package_key      = lookup(local.falcon_sensor_package_match, "key", null)
+    has_falcon_sensor              = local.falcon_sensor_package_bucket != null && local.falcon_sensor_package_key != null
+    falcon_sensor_parameter_prefix = "${local.name_prefix}bastion/falcon-sensor/"
+
     loggroup_prefix      = "${local.name_prefix}bastion/"
     metrics_namespace    = "${local.name_prefix}bastion"
     sss_parameter_prefix = "${local.name_prefix}bastion/sss/"

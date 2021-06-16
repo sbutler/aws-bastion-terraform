@@ -75,6 +75,7 @@ data "aws_iam_policy_document" "bastion_ssm_parameters" {
         resources = [
             "arn:aws:ssm:${local.region_name}:${local.account_id}:parameter/${local.ssh_parameter_prefix}*",
             "arn:aws:ssm:${local.region_name}:${local.account_id}:parameter/${local.sss_parameter_prefix}*",
+            "arn:aws:ssm:${local.region_name}:${local.account_id}:parameter/${local.falcon_sensor_parameter_prefix}*"
         ]
     }
 }
@@ -139,6 +140,25 @@ data "aws_iam_policy_document" "bastion_logs" {
     }
 }
 
+data "aws_iam_policy_document" "bastion_falcon_sensor" {
+    count = local.has_falcon_sensor ? 1 : 0
+
+    statement {
+        sid    = "Download"
+        effect = "Allow"
+
+        actions = [
+            "s3:GetBucketLocation",
+            "s3:GetObject*",
+        ]
+
+        resources = [
+            "arn:aws:s3:::${local.falcon_sensor_package_bucket}",
+            "arn:aws:s3:::${local.falcon_sensor_package_bucket}/${local.falcon_sensor_package_key}",
+        ]
+    }
+}
+
 # =========================================================
 # Resources
 # =========================================================
@@ -181,6 +201,14 @@ resource "aws_iam_role_policy" "bastion_logs" {
     policy = data.aws_iam_policy_document.bastion_logs.json
 }
 
+resource "aws_iam_role_policy" "bastion_falcon_sensor" {
+    count = local.has_falcon_sensor ? 1 : 0
+
+    name   = "falcon-sensor"
+    role   = aws_iam_role.bastion.id
+    policy = data.aws_iam_policy_document.bastion_falcon_sensor[count.index].json
+}
+
 resource "aws_iam_role_policy_attachment" "bastion_ssm" {
     role       = aws_iam_role.bastion.name
     policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
@@ -194,6 +222,7 @@ resource "time_sleep" "bastion_role" {
     triggers = {
         events         = aws_iam_role_policy.bastion_events.id
         extra_enis     = join(" ", aws_iam_role_policy.bastion_extra_enis[*].id)
+        falcon_sensor  = join(" ", aws_iam_role_policy.bastion_falcon_sensor[*].id)
         ssm            = aws_iam_role_policy_attachment.bastion_ssm.id
         ssm_parameters = aws_iam_role_policy.bastion_ssm_parameters.id
         logs           = aws_iam_role_policy.bastion_logs.id

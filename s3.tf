@@ -118,6 +118,16 @@ resource "aws_s3_bucket_object" "assets_cloudinit_extraenissh" {
     etag         = filemd5("${path.module}/files/cloud-init/extra-enis.sh")
 }
 
+resource "aws_s3_bucket_object" "assets_cloudinit_falconsensorsh" {
+    bucket = aws_s3_bucket.assets.bucket
+    key    = "cloud-init/falcon-sensor.sh"
+
+    source       = "${path.module}/files/cloud-init/falcon-sensor.sh"
+    acl          = "bucket-owner-full-control"
+    content_type = "text/x-sh"
+    etag         = filemd5("${path.module}/files/cloud-init/falcon-sensor.sh")
+}
+
 resource "aws_s3_bucket_object" "assets_cloudinit_initsh" {
     bucket = aws_s3_bucket.assets.bucket
     key    = "cloud-init/init.sh"

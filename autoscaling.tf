@@ -28,6 +28,7 @@ data "cloudinit_config" "bastion_userdata" {
         aws_s3_bucket_object.assets_cloudinit_ec2logsyml,
         aws_s3_bucket_object.assets_cloudinit_efssh,
         aws_s3_bucket_object.assets_cloudinit_extraenissh,
+        aws_s3_bucket_object.assets_cloudinit_falconsensorsh,
         aws_s3_bucket_object.assets_cloudinit_initsh,
         aws_s3_bucket_object.assets_cloudinit_s3downloadsh,
         aws_s3_bucket_object.assets_cloudinit_sshsh,
@@ -71,6 +72,9 @@ data "cloudinit_config" "bastion_userdata" {
                     [ for i in range(length(local.extra_enis)) : i + 1 ],
                     [ for o in local.extra_enis : join(" ", o.prefix_list_ids) ]
                 ))
+
+                falcon_sensor_package  = coalesce(var.falcon_sensor_package, "")
+                falcon_sensor_cid_path = "/${local.falcon_sensor_parameter_prefix}CID"
             }
         )
     }
