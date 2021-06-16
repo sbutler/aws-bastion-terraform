@@ -21,7 +21,7 @@ illinois_efs_mount () {
     local name=$(basename "$1")
     local efs_filesystem_id=''
     local mount_target="/mnt/${name}"
-    local efs_options=""
+    local efs_options="tls,noresvport"
 
     . "$1"
 
@@ -33,7 +33,7 @@ illinois_efs_mount () {
     local dir_src="$efs_filesystem_id"
     local dir_tgt="$mount_target"
 
-    if ! egrep -q "^${dir_src}:/" /etc/fstab; then
+    if ! egrep -q "^${dir_src}:/\s+${mount_target}\s+" /etc/fstab; then
         [[ -e $dir_tgt ]] || mkdir -p "${dir_tgt}"
         if ! mount -t efs -o "${efs_options}" "${dir_src}:/" "${dir_tgt}"; then
             echo "ERROR: ${name} mounting ${dir_src} to ${dir_tgt} failed"
