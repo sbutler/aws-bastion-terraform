@@ -6,10 +6,19 @@ EOF
 chmod 0644 "$file"
 chown root:root "$file"
 
-file=/etc/opt/illinois/cloud-init/efs/homefs
+file=/etc/opt/illinois/cloud-init/efs/sharedfs
 mkdir -p "$(dirname "$file")"
 cat << "EOF" > "$file"
-efs_filesystem_id=${homefs_id}
+efs_filesystem_id=${sharedfs_id}
+EOF
+chmod 0644 "$file"
+chown root:root "$file"
+
+file=/etc/opt/illinois/cloud-init/efs/home_uofi
+mkdir -p "$(dirname "$file")"
+cat << "EOF" > "$file"
+efs_filesystem_id=${sharedfs_id}
+efs_options=tls,noresvport,accesspoint=${sharedfs_home_uofi_id}
 mount_target=/home/ad.uillinois.edu
 EOF
 chmod 0644 "$file"

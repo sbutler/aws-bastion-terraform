@@ -10,9 +10,9 @@ data "aws_kms_alias" "efs" {
 # Resources
 # =========================================================
 
-resource "aws_security_group" "homefs" {
-    name_prefix = "${local.name_prefix}bastion-homefs-"
-    description = "Home filesystem for bastion hosts."
+resource "aws_security_group" "sharedfs" {
+    name_prefix = "${local.name_prefix}bastion-sharedfs-"
+    description = "Shared filesystem for bastion hosts."
     vpc_id      = local.internal_vpc_id
 
     ingress {
@@ -32,29 +32,41 @@ resource "aws_security_group" "homefs" {
     }
 
     tags = {
-        Name = "${var.service} Home Filesystem"
+        Name = "${var.service} Shared Filesystem"
     }
 }
 
-resource "aws_efs_file_system" "homefs" {
+resource "aws_efs_file_system" "sharedfs" {
     encrypted  = true
     kms_key_id = data.aws_kms_alias.efs.target_key_arn
 
     tags = {
-        Name               = "${local.name_prefix}bastion-homefs"
+        Name               = "${local.name_prefix}bastion-sharedfs"
         DataClassification = "Internal"
     }
 
     lifecycle {
-        prevent_destroy = false
+        prevent_destroy = true
+    }
+}
+
+resource "aws_efs_access_point" "sharedfs_home_uofi" {
+    file_system_id = aws_efs_file_system.sharedfs.id
+    root_directory {
+        path = "/home/ad.uillinois.edu"
+        creation_info {
+            owner_uid   = 0
+            owner_gid   = 0
+            permissions = "755"
+        }
     }
 }
 
 # Create one sharedfs mount target per subnet.
-resource "aws_efs_mount_target" "homefs" {
+resource "aws_efs_mount_target" "sharedfs" {
     count = length(local.internal_subnet_ids)
 
-    file_system_id  = aws_efs_file_system.homefs.id
+    file_system_id  = aws_efs_file_system.sharedfs.id
     subnet_id       = local.internal_subnet_ids[count.index]
-    security_groups = [ aws_security_group.homefs.id ]
+    security_groups = [ aws_security_group.sharedfs.id ]
 }

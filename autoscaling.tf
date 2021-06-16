@@ -47,7 +47,8 @@ data "cloudinit_config" "bastion_userdata" {
                 asg_name    = local.asg_name
                 prompt_name = "${local.name_prefix}bastion"
 
-                homefs_id = aws_efs_file_system.homefs.id
+                sharedfs_id           = aws_efs_file_system.sharedfs.id
+                sharedfs_home_uofi_id = aws_efs_access_point.sharedfs_home_uofi.id
 
                 loggroup_prefix             = local.loggroup_prefix
                 metrics_namespace           = local.metrics_namespace
