@@ -30,15 +30,40 @@ if [[ -z $sss_bindpass_parameter ]]; then
     echo "ERROR: no sss_bindpass_parameter specified"
     exit 1
 fi
+if [[ -z $sss_admingroups_parameter ]]; then
+    echo "ERROR: no sss_admingroups_parameter specified"
+    exit 1
+fi
+if [[ -z $sss_allowgroups_parameter ]]; then
+    echo "ERROR: no sss_allowgroups_parameter specified"
+    exit 1
+fi
 
 illinois_rpm_install sssd sudo
 
 illinois_init_status sss running
 
 echo "INFO: getting bind username from SSM $sss_binduser_parameter"
-bindcreds_user=$(aws ssm get-parameter --with-decryption --name "$sss_binduser_parameter" --output text --query Parameter.Value)
+bindcreds_user="$(illinois_get_param "$sss_binduser_parameter")"
 echo "INFO: getting bind password from SSM $sss_bindpass_parameter"
-bindcreds_pass=$(aws ssm get-parameter --with-decryption --name "$sss_bindpass_parameter" --output text --query Parameter.Value)
+bindcreds_pass="$(illinois_get_param "$sss_bindpass_parameter")"
+
+echo "INFO: getting the admin groups from SSM $sss_admingroups_parameter"
+readarray -t _sss_admin_groups <<<  "$(illinois_get_listparam "$sss_admingroups_parameter")"
+echo "INFO: getting the admin groups from SSM $sss_allowgroups_parameter"
+readarray -t _sss_allow_groups <<< "$(illinois_get_listparam "$sss_allowgroups_parameter" "")"
+_sss_allow_groups+=("${_sss_admin_groups[@]}")
+
+IFS=$'\n'
+_sss_admin_groups=($(sort -u <<< "${_sss_admin_groups[*]}"))
+_sss_allow_groups=($(sort -u <<< "${_sss_allow_groups[*]}"))
+unset IFS
+
+for i in ${!_sss_admin_groups[@]}; do
+    _sss_admin_groups[$i]="\"%${_sss_admin_groups[$i]}\""
+done
+sss_admin_groups=$(IFS=,; echo "${_sss_admin_groups[*]}")
+sss_allow_groups=$(IFS=,; echo "${_sss_allow_groups[*]}")
 
 echo "INFO: will bind as ${bindcreds_user}"
 

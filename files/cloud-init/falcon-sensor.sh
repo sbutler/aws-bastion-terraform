@@ -31,7 +31,7 @@ echo "INFO: getting the falcon-sensor from $falcon_sensor_package"
 aws s3 cp $falcon_sensor_package "$falcon_sensor_rpm"
 
 echo "INFO: getting the falcon-sensor CID from $falcon_sensor_cid_path"
-falcon_sensor_cid=$(aws ssm get-parameter --with-decryption --name "$falcon_sensor_cid_path" --output text --query Parameter.Value)
+falcon_sensor_cid="$(illinois_get_param "$falcon_sensor_cid_path")"
 if [[ -z $falcon_sensor_cid ]]; then
     echo "ERROR: no value for $falcon_sensor_cid"
     exit 1

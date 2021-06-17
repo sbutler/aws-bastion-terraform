@@ -45,8 +45,8 @@ chown root:root "$file"
 file=/etc/opt/illinois/cloud-init/sss.conf
 mkdir -p "$(dirname "$file")"
 cat << "EOF" > "$file"
-sss_admin_groups="${sss_admin_groups}"
-sss_allow_groups="${sss_allow_groups}"
+sss_admingroups_parameter="${sss_admingroups_parameter}"
+sss_allowgroups_parameter="${sss_allowgroups_parameter}"
 sss_binduser_parameter="${sss_binduser_parameter}"
 sss_bindpass_parameter="${sss_bindpass_parameter}"
 EOF

@@ -54,17 +54,10 @@ data "cloudinit_config" "bastion_userdata" {
                 metrics_namespace           = local.metrics_namespace
                 metrics_collection_interval = var.enhanced_monitoring ? 60 : 300
 
-                sss_admin_groups = join(", ",
-                    [ for g in var.admin_groups : "%${replace(g, " ", "\\ ")}" ]
-                )
-                sss_allow_groups = join(", ",
-                    distinct(concat(
-                        var.admin_groups,
-                        var.allow_groups,
-                    ))
-                )
-                sss_binduser_parameter = "/${local.sss_parameter_prefix}bind-username"
-                sss_bindpass_parameter = "/${local.sss_parameter_prefix}bind-password"
+                sss_admingroups_parameter = "/${local.sss_parameter_prefix}admin-groups"
+                sss_allowgroups_parameter = "/${local.sss_parameter_prefix}allow-groups"
+                sss_binduser_parameter    = "/${local.sss_parameter_prefix}bind-username"
+                sss_bindpass_parameter    = "/${local.sss_parameter_prefix}bind-password"
 
                 ssh_hostkeys_path = "/${local.ssh_parameter_prefix}"
 

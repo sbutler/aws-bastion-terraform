@@ -35,6 +35,7 @@ illinois_aws_token () {
     echo $_illinois_aws_token
     return 0
 }
+illinois_aws_token >/dev/null
 
 illinois_aws_metadata () {
     local _imds_token=$(illinois_aws_token)
@@ -100,6 +101,35 @@ illinois_rpm_remove () {
             done
 
             yum -y remove $pkg
+        fi
+    done
+}
+
+illinois_get_param () {
+    local _param="$1"
+
+    if ! aws ssm get-parameter --with-decryption --name "$_param" --output text --query Parameter.Value; then
+        local _exitcode=$?
+        if [[ $# -gt 1 ]]; then
+            echo "$2"
+        else
+            return $_exitcode
+        fi
+    fi
+}
+
+illinois_get_listparam () {
+    local _data="$(illinois_get_param "$@")"
+
+    local -a _arr=()
+    IFS=,
+    read -ra _arr <<< "$_data"
+    unset IFS
+
+    # Strip out blank lines and echo back to stdout for readarray
+    for a in "${_arr[@]}"; do
+        if [[ -n $a ]]; then
+            echo "$a"
         fi
     done
 }

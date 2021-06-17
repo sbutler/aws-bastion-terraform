@@ -64,17 +64,6 @@ variable "enhanced_monitoring" {
     default     = false
 }
 
-variable "admin_groups" {
-    type        = list(string)
-    description = "List of groups allowed to admin the bastion host."
-}
-
-variable "allow_groups" {
-    type        = list(string)
-    description = "List of groups allowed to SSH into the bastion host. Admin groups are implicitly included."
-    default     = []
-}
-
 variable "falcon_sensor_package" {
     type        = string
     description = "S3 URL (s3://bucket/path/to/sensor.rpm) to download the CrowdStrike Falcon Sensor."
