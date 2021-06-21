@@ -7,6 +7,19 @@
 set -e
 
 [[ -e /etc/opt/illinois/cloud-init/init.sh ]] || cat > /etc/opt/illinois/cloud-init/init.sh << "EOF_INIT"
+illinois_log () {
+    local _module="${ILLINOIS_MODULE:-$(basename "$0")}"
+    local _level="$1"
+
+    if [[ $_level =~ ^(emerg|alert|crit|err|warning|notice|info|debug|panic|error|warn)$ ]]; then
+        shift
+    else
+        _level="info"
+    fi
+
+    logger --tag "illinois-init-$_module" --priority "local3.$_level" --stderr -- "$@"
+}
+
 tmpfiles=()
 illinois_finish () {
     set +e
@@ -31,12 +44,12 @@ _illinois_aws_token=""
 _illinois_aws_tokenexpires=0
 illinois_aws_token () {
     if [[ -z $_illinois_aws_token || $_illinois_aws_tokenexpires -le $(date +%s) ]]; then
-        echo "INFO: getting IMDS Token" >&2
+        illinois_log "getting IMDS Token"
         _imds_token=$(curl --silent --fail --retry 30 --retry-delay 1 --retry-max-time 30 -X PUT -H "X-aws-ec2-metadata-token-ttl-seconds: 300" http://169.254.169.254/latest/api/token)
         _imds_exitcode=$?
 
         if (( _imds_exitcode > 0 )); then
-            echo "ERROR: unable to get the IMDS Token (code: $_imds_exitcode)" >&2
+            illinois_log err "unable to get the IMDS Token (code: $_imds_exitcode)"
             return $_imds_exitcode
         fi
 
@@ -86,9 +99,9 @@ EOF
         if jq --arg m "$_module" --arg v "$_status" '.Detail = (.Detail | fromjson | .status[$m] = $v | .lastStatus = $m | tojson)' < /var/lib/illinois-init-status.json > "$_statustmp"; then
             cp "$_statustmp" /var/lib/illinois-init-status.json
             local _eventID="$(aws events put-events --entries "[$(cat /var/lib/illinois-init-status.json)]" --output text --query 'Entries[0].EventId')"
-            echo "INFO: updated $_module status to $_status (event: $_eventID)"
+            illinois_log "updated status to $_status (event: $_eventID)"
         else
-            echo "ERROR: unable to update illinois-init-status.json"
+            illinois_log err "unable to update illinois-init-status.json"
         fi
     ) 200> /var/lock/illinois-init-status
     set -e
@@ -102,7 +115,7 @@ illinois_rpm_install () {
         if ! rpm -q --quiet $pkg; then
             local _yum_maxwait=40
             while [[ -e /var/run/yum.pid && $_yum_maxwait -gt 0 ]] && kill -CHLD $(</var/run/yum.pid); do
-                echo "Waiting for another yum process..."
+                illinois_log "Waiting for another yum process..."
                 sleep 5
                 (( _yum_maxwait-- )) || :
             done
@@ -118,7 +131,7 @@ illinois_rpm_remove () {
         if rpm -q --quiet $pkg; then
             local _yum_maxwait=40
             while [[ -e /var/run/yum.pid && $_yum_maxwait -gt 0 ]] && kill -CHLD $(</var/run/yum.pid); do
-                echo "Waiting for another yum process..."
+                illinois_log "Waiting for another yum process..."
                 sleep 5
                 (( _yum_maxwait-- )) || :
             done

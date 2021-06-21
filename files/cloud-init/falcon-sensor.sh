@@ -18,7 +18,7 @@ ILLINOIS_MODULE=falcon-sensor
 illinois_init_status running
 
 if [[ -z $falcon_sensor_package ]]; then
-    echo "INFO: no falcon_sensor_package specified; skipping"
+    illinois_log "no falcon_sensor_package specified; skipping"
 
     illinois_init_status finished
     date > /var/lib/illinois-falcon-sensor-init
@@ -28,23 +28,23 @@ fi
 
 
 falcon_sensor_rpm=$(mktemp -t falcon-sensor.XXXXXXXXXX.rpm); tmpfiles+=("$falcon_sensor_rpm")
-echo "INFO: getting the falcon-sensor from $falcon_sensor_package"
+illinois_log "getting the falcon-sensor from $falcon_sensor_package"
 aws s3 cp $falcon_sensor_package "$falcon_sensor_rpm"
 
-echo "INFO: getting the falcon-sensor CID from $falcon_sensor_cid_path"
+illinois_log "getting the falcon-sensor CID from $falcon_sensor_cid_path"
 falcon_sensor_cid="$(illinois_get_param "$falcon_sensor_cid_path")"
 if [[ -z $falcon_sensor_cid ]]; then
-    echo "ERROR: no value for $falcon_sensor_cid"
+    illinois_log err "no value for $falcon_sensor_cid"
     exit 1
 fi
 
-echo "INFO: installing falcon-sensor package"
+illinois_log "installing falcon-sensor package"
 yum install -y "$falcon_sensor_rpm"
 
-echo "INFO: configuring falcon-sensor CID"
+illinois_log "configuring falcon-sensor CID"
 /opt/CrowdStrike/falconctl -s --cid="$falcon_sensor_cid"
 
-echo "INFO: starting the falcon-sensor"
+illinois_log "starting the falcon-sensor"
 systemctl start falcon-sensor
 
 illinois_init_status finished

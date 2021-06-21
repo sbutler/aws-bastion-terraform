@@ -27,7 +27,7 @@ illinois_efs_mount () {
     . "$1"
 
     if [[ -z $efs_filesystem_id ]]; then
-        echo "ERROR: ${name} does not have an 'efs_filesystem_id' set"
+        illinois_log err "${name} does not have an 'efs_filesystem_id' set"
         return
     fi
 
@@ -37,7 +37,7 @@ illinois_efs_mount () {
     if ! egrep -q "^${dir_src}:/\s+${mount_target}\s+" /etc/fstab; then
         [[ -e $dir_tgt ]] || mkdir -p "${dir_tgt}"
         if ! mount -t efs -o "${efs_options}" "${dir_src}:/" "${dir_tgt}"; then
-            echo "ERROR: ${name} mounting ${dir_src} to ${dir_tgt} failed"
+            illinois_log err "${name} mounting ${dir_src} to ${dir_tgt} failed"
             return
         fi
 

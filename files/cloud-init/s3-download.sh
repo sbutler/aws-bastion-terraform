@@ -22,7 +22,7 @@ download_file () {
     f="$1"
     u="${INCLUDE_URL_BASE}${f}"
 
-    echo "INFO: Downloading $u -> $f"
+    illinois_log "downloading $u -> $f"
     aws s3 cp "$u" "$f" || :
 }
 

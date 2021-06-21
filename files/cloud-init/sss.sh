@@ -24,19 +24,19 @@ ILLINOIS_MODULE=sss
 : ${sss_override_homedir:="/home/%d/%u"}
 
 if [[ -z $sss_binduser_parameter ]]; then
-    echo "ERROR: no sss_binduser_parameter specified"
+    illinois_log err "no sss_binduser_parameter specified"
     exit 1
 fi
 if [[ -z $sss_bindpass_parameter ]]; then
-    echo "ERROR: no sss_bindpass_parameter specified"
+    illinois_log err "no sss_bindpass_parameter specified"
     exit 1
 fi
 if [[ -z $sss_admingroups_parameter ]]; then
-    echo "ERROR: no sss_admingroups_parameter specified"
+    illinois_log err "no sss_admingroups_parameter specified"
     exit 1
 fi
 if [[ -z $sss_allowgroups_parameter ]]; then
-    echo "ERROR: no sss_allowgroups_parameter specified"
+    illinois_log err "no sss_allowgroups_parameter specified"
     exit 1
 fi
 
@@ -44,14 +44,14 @@ illinois_rpm_install sssd sudo
 
 illinois_init_status running
 
-echo "INFO: getting bind username from SSM $sss_binduser_parameter"
+illinois_log "getting bind username from SSM $sss_binduser_parameter"
 bindcreds_user="$(illinois_get_param "$sss_binduser_parameter")"
-echo "INFO: getting bind password from SSM $sss_bindpass_parameter"
+illinois_log "getting bind password from SSM $sss_bindpass_parameter"
 bindcreds_pass="$(illinois_get_param "$sss_bindpass_parameter")"
 
-echo "INFO: getting the admin groups from SSM $sss_admingroups_parameter"
+illinois_log "getting the admin groups from SSM $sss_admingroups_parameter"
 readarray -t _sss_admin_groups <<<  "$(illinois_get_listparam "$sss_admingroups_parameter")"
-echo "INFO: getting the admin groups from SSM $sss_allowgroups_parameter"
+illinois_log "getting the admin groups from SSM $sss_allowgroups_parameter"
 readarray -t _sss_allow_groups <<< "$(illinois_get_listparam "$sss_allowgroups_parameter" "")"
 _sss_allow_groups+=("${_sss_admin_groups[@]}")
 
@@ -66,7 +66,7 @@ done
 sss_admin_groups=$(IFS=,; echo "${_sss_admin_groups[*]}")
 sss_allow_groups=$(IFS=,; echo "${_sss_allow_groups[*]}")
 
-echo "INFO: will bind as ${bindcreds_user}"
+illinois_log "will bind as ${bindcreds_user}"
 
 cat > /etc/sssd/sssd.conf <<EOF
 [sssd]
@@ -127,25 +127,25 @@ EOF
 [[ -n $sss_override_gid ]] && echo "override_gid = ${sss_override_gid}" >> /etc/sssd/sssd.conf
 chmod 0600 /etc/sssd/sssd.conf
 
-echo "INFO: configuring system authentication"
+illinois_log "configuring system authentication"
 authconfig --enablesssd --enablesssdauth --enablemkhomedir --update
 
-echo "INFO: enabling and start sssd"
+illinois_log "enabling and start sssd"
 systemctl enable sssd
 systemctl restart sssd
 
-echo "INFO: configuring sshd for using sss authorized keys"
+illinois_log "configuring sshd for using sss authorized keys"
 
 cfg_file=$(mktemp -t sshd_config.XXXXXXXX); tmpfiles+=("$cfg_file")
 cp /etc/ssh/sshd_config "$cfg_file"
 restart_sshd=no
 if ! egrep -q '^\s*AuthorizedKeysCommandUser\s+(\S+)' "$cfg_file"; then
-    echo "INFO: adding AuthorizedKeysCommandUser nobody"
+    illinois_log "adding AuthorizedKeysCommandUser nobody"
     sed -re '/^\s*# Example of overriding settings on a per-user basis/i AuthorizedKeysCommandUser nobody' "$cfg_file"
     restart_sshd=yes
 fi
 if ! egrep -q '^\s*# ADDED BY SSS CONFIGURATION' "$cfg_file"; then
-    echo "INFO: adding sss authorized keys for domain users"
+    illinois_log "adding sss authorized keys for domain users"
     cat >> "$cfg_file" <<EOF
 
 # ADDED BY SSS CONFIGURATION
@@ -157,19 +157,19 @@ fi
 
 if [[ $restart_sshd = "yes" ]]; then
     if ! sshd -t -f "$cfg_file"; then
-        echo "ERROR: unable to validate sshd_config"
+        illinois_log err "unable to validate sshd_config"
         exit 1
     fi
     cp "$cfg_file" /etc/ssh/sshd_config
     chown root:root /etc/ssh/sshd_config
     chmod 0600 /etc/ssh/sshd_config
 
-    echo "INFO: restarting sshd"
+    illinois_log "restarting sshd"
     systemctl restart sshd
 fi
 
 if [[ -n $sss_admin_groups ]]; then
-    echo "INFO: setting sudo admin groups"
+    illinois_log "setting sudo admin groups"
     cfg_file=$(mktemp -t illinois-sudoers.XXXXXXXX); tmpfiles+=("$cfg_file")
     cat > "$cfg_file" <<EOF
 User_Alias ILLINOIS_ADMINS = ${sss_admin_groups}
@@ -181,7 +181,7 @@ EOF
         chown root:root /etc/sudoers.d/illinois
         chmod 0640 /etc/sudoers.d/illinois
     else
-        echo "ERROR: unable to validate illinois sudoers file"
+        illinois_log err "unable to validate illinois sudoers file"
         exit 1
     fi
 fi
