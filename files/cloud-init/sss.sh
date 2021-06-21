@@ -12,6 +12,7 @@
 #   sss_override_gid: primary GID to override.
 
 set -e
+ILLINOIS_MODULE=sss
 
 [[ -e /var/lib/illinois-sss-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
@@ -41,7 +42,7 @@ fi
 
 illinois_rpm_install sssd sudo
 
-illinois_init_status sss running
+illinois_init_status running
 
 echo "INFO: getting bind username from SSM $sss_binduser_parameter"
 bindcreds_user="$(illinois_get_param "$sss_binduser_parameter")"
@@ -185,5 +186,5 @@ EOF
     fi
 fi
 
-illinois_init_status sss finished
+illinois_init_status finished
 date > /var/lib/illinois-sss-init

@@ -8,6 +8,7 @@
 #   PUB_FILES: array of files readable by everyone but only writable by root.
 
 set -e
+ILLINOIS_MODULE=s3-download
 
 [[ -e /var/lib/illinois-s3-download-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
@@ -15,7 +16,7 @@ set -e
 [[ -e /etc/opt/illinois/cloud-init/s3-download.conf ]] || exit 0
 . /etc/opt/illinois/cloud-init/s3-download.conf
 
-illinois_init_status s3-download running
+illinois_init_status running
 
 download_file () {
     f="$1"
@@ -35,5 +36,5 @@ for file in "${PUB_FILES[@]}"; do
     download_file "$file"
 done
 
-illinois_init_status s3-download finished
+illinois_init_status finished
 date > /var/lib/illinois-s3-download-init

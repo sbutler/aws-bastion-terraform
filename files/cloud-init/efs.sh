@@ -9,13 +9,14 @@
 #   nfs_options: options to pass to mount_nfs4. Default: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2
 
 set -e
+ILLINOIS_MODULE=efs
 
 [[ -e /var/lib/illinois-efs-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
 
 illinois_rpm_install nfs-utils amazon-efs-utils
 
-illinois_init_status efs running
+illinois_init_status running
 
 illinois_efs_mount () {
     local name=$(basename "$1")
@@ -54,5 +55,5 @@ for efs_config in /etc/opt/illinois/cloud-init/efs/*; do
     illinois_efs_mount "$efs_config"
 done
 
-illinois_init_status efs finished
+illinois_init_status finished
 date > /var/lib/illinois-efs-init

@@ -7,6 +7,7 @@
 #       item under this path will be created as a key file in  /etc/sshd/.
 
 set -e
+ILLINOIS_MODULE=ssh
 
 [[ -e /var/lib/illinois-ssh-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
@@ -18,7 +19,7 @@ if [[ -z $ssh_hostkeys_path ]]; then
     exit 1
 fi
 
-illinois_init_status ssh running
+illinois_init_status running
 
 echo "INFO: getting the names of host key files"
 readarray -t ssh_hostkeys_lines < <(aws ssm describe-parameters \
@@ -45,5 +46,5 @@ if ! sshd -t; then
 fi
 systemctl restart sshd
 
-illinois_init_status ssh finished
+illinois_init_status finished
 date > /var/lib/illinois-ssh-init

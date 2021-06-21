@@ -10,12 +10,12 @@
 #       list of prefix-id's to add routes for over that interface.
 
 set -e
-
+ILLINOIS_MODULE=extra-enis
 
 [[ -e /var/lib/illinois-extra-enis-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
 
-illinois_init_status extra-enis running
+illinois_init_status running
 
 for d in /etc/sysconfig/network-scripts /etc/dhcp/dhclient.d /usr/local/bin /etc/udev/rules.d /usr/local/lib/systemd/system; do
   [[ -e $d ]] || mkdir -p "$d"
@@ -502,5 +502,5 @@ HERE
     fi
 fi
 
-illinois_init_status extra-enis finished
+illinois_init_status finished
 date > /var/lib/illinois-extra-enis-init

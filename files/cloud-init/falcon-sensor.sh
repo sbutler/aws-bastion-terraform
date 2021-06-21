@@ -8,18 +8,19 @@
 #   falcon_sensor_cid_path: SSM Parameter Path to the CID for the falcon-sensor
 
 set -e
+ILLINOIS_MODULE=falcon-sensor
 
 [[ -e /var/lib/illinois-falcon-sensor-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
 
 [[ -e /etc/opt/illinois/cloud-init/falcon-sensor.conf ]] && . /etc/opt/illinois/cloud-init/falcon-sensor.conf
 
-illinois_init_status falcon-sensor running
+illinois_init_status running
 
 if [[ -z $falcon_sensor_package ]]; then
     echo "INFO: no falcon_sensor_package specified; skipping"
 
-    illinois_init_status falcon-sensor finished
+    illinois_init_status finished
     date > /var/lib/illinois-falcon-sensor-init
 
     exit 0
@@ -46,5 +47,5 @@ echo "INFO: configuring falcon-sensor CID"
 echo "INFO: starting the falcon-sensor"
 systemctl start falcon-sensor
 
-illinois_init_status falcon-sensor finished
+illinois_init_status finished
 date > /var/lib/illinois-falcon-sensor-init
