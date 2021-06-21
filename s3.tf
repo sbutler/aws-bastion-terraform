@@ -138,6 +138,16 @@ resource "aws_s3_bucket_object" "assets_cloudinit_initsh" {
     etag         = filemd5("${path.module}/files/cloud-init/init.sh")
 }
 
+resource "aws_s3_bucket_object" "assets_cloudinit_ossecsh" {
+    bucket = aws_s3_bucket.assets.bucket
+    key    = "cloud-init/ossec.sh"
+
+    source       = "${path.module}/files/cloud-init/ossec.sh"
+    acl          = "bucket-owner-full-control"
+    content_type = "text/x-sh"
+    etag         = filemd5("${path.module}/files/cloud-init/ossec.sh")
+}
+
 resource "aws_s3_bucket_object" "assets_cloudinit_s3downloadsh" {
     bucket = aws_s3_bucket.assets.bucket
     key    = "cloud-init/s3-download.sh"

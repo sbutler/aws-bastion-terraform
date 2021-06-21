@@ -97,6 +97,21 @@ write_files:
                                 "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
                                 "log_group_name": "/${loggroup_prefix}var/log/secure",
                                 "log_stream_name": "{instance_id}"
+                            },
+                            {
+                                "file_path": "/var/ossec/logs/ossec.log*",
+                                "timezone": "Local",
+                                "timestamp_format": "%Y/%m/%d %H:%M:%S",
+                                "log_group_name": "/${loggroup_prefix}var/ossec/logs/ossec.log",
+                                "log_stream_name": "{instance_id}"
+                            },
+                            {
+                                "file_path": "/var/ossec/logs/alerts/alerts.log",
+                                "timezone": "Local",
+                                "timestamp_format": "%Y %b %d %H:%M:%S",
+                                "multi_line_start_pattern": "^\\\\*\\\\*\\\\s+Alert\\\\s+\\\\d+\\\\.\\\\d+:",
+                                "log_group_name": "/${loggroup_prefix}var/ossec/logs/alerts/alerts.log",
+                                "log_stream_name": "{instance_id}"
                             }
                         ]
                     }

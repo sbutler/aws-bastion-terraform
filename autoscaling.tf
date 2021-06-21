@@ -30,6 +30,7 @@ data "cloudinit_config" "bastion_userdata" {
         aws_s3_bucket_object.assets_cloudinit_extraenissh,
         aws_s3_bucket_object.assets_cloudinit_falconsensorsh,
         aws_s3_bucket_object.assets_cloudinit_initsh,
+        aws_s3_bucket_object.assets_cloudinit_ossecsh,
         aws_s3_bucket_object.assets_cloudinit_s3downloadsh,
         aws_s3_bucket_object.assets_cloudinit_sshsh,
         aws_s3_bucket_object.assets_cloudinit_ssssh,
@@ -69,6 +70,8 @@ data "cloudinit_config" "bastion_userdata" {
 
                 falcon_sensor_package  = coalesce(var.falcon_sensor_package, "")
                 falcon_sensor_cid_path = "/${local.falcon_sensor_parameter_prefix}CID"
+
+                ossec_whitelists_path = "/${local.ossec_parameter_prefix}whitelists"
             }
         )
     }
@@ -85,6 +88,7 @@ https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/yumcron.y
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ssh.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/sss.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/falcon-sensor.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ossec.sh
 EOF
     }
 

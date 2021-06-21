@@ -5,6 +5,9 @@ fqdn: ${hostname}
 
 packages:
     - git
+    - ipset
+    - ipset-service
+    - iptables
     - iptables-services
     - jq
     - openldap-clients
@@ -13,6 +16,8 @@ packages:
     - pv
     - python
     - python-devel
+    - sssd
+    - sudo
     - wget
     - vim
 

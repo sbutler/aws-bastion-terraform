@@ -75,7 +75,8 @@ data "aws_iam_policy_document" "bastion_ssm_parameters" {
         resources = [
             "arn:aws:ssm:${local.region_name}:${local.account_id}:parameter/${local.ssh_parameter_prefix}*",
             "arn:aws:ssm:${local.region_name}:${local.account_id}:parameter/${local.sss_parameter_prefix}*",
-            "arn:aws:ssm:${local.region_name}:${local.account_id}:parameter/${local.falcon_sensor_parameter_prefix}*"
+            "arn:aws:ssm:${local.region_name}:${local.account_id}:parameter/${local.falcon_sensor_parameter_prefix}*",
+            "arn:aws:ssm:${local.region_name}:${local.account_id}:parameter/${local.ossec_parameter_prefix}*",
         ]
     }
 }

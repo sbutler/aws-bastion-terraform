@@ -78,8 +78,9 @@ locals {
     has_falcon_sensor              = local.falcon_sensor_package_bucket != null && local.falcon_sensor_package_key != null
     falcon_sensor_parameter_prefix = "${local.name_prefix}bastion/falcon-sensor/"
 
-    loggroup_prefix      = "${local.name_prefix}bastion/"
-    metrics_namespace    = "${local.name_prefix}bastion"
-    sss_parameter_prefix = "${local.name_prefix}bastion/sss/"
-    ssh_parameter_prefix = "${local.name_prefix}bastion/ssh/"
+    loggroup_prefix        = "${local.name_prefix}bastion/"
+    metrics_namespace      = "${local.name_prefix}bastion"
+    sss_parameter_prefix   = "${local.name_prefix}bastion/sss/"
+    ssh_parameter_prefix   = "${local.name_prefix}bastion/ssh/"
+    ossec_parameter_prefix = "${local.name_prefix}bastion/ossec/"
 }

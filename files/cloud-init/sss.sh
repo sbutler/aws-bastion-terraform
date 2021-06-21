@@ -40,8 +40,6 @@ if [[ -z $sss_allowgroups_parameter ]]; then
     exit 1
 fi
 
-illinois_rpm_install sssd sudo
-
 illinois_init_status running
 
 illinois_log "getting bind username from SSM $sss_binduser_parameter"

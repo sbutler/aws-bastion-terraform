@@ -70,6 +70,14 @@ EOF
 chmod 0644 "$file"
 chown root:root "$file"
 
+file=/etc/opt/illinois/cloud-init/ossec.conf
+mkdir -p "$(dirname "$file")"
+cat << "EOF" > "$file"
+ossec_whitelists_path="${ossec_whitelists_path}"
+EOF
+chmod 0644 "$file"
+chown root:root "$file"
+
 
 if ! egrep -q '^\s*root:' /etc/aliases; then
     echo "root: ${contact}" >> /etc/aliases
