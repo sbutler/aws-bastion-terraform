@@ -64,7 +64,7 @@ resource "aws_eip" "bastion" {
     }
 
     lifecycle {
-        prevent_destroy = true
+        #prevent_destroy = true
     }
 }
 

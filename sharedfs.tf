@@ -38,7 +38,7 @@ resource "aws_efs_file_system" "sharedfs" {
     }
 
     lifecycle {
-        prevent_destroy = true
+        #prevent_destroy = true
     }
 }
 
