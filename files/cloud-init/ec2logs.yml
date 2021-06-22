@@ -15,22 +15,57 @@ write_files:
         #!/bin/bash
 
         set -e
+        ILLINOIS_MODULE=ec2logs
+        . /etc/opt/illinois/cloud-init/init.sh
 
-        cleanup () {
-            [[ -e $rpmfile ]] && rm -- "$rpmfile"
-        }
-        trap cleanup exit
 
-        rpmfile=$(mktemp -t --suffix .rpm amazon-cloudwatch-agent.XXXXXXXX)
+        illinois_init_status running
+
+        illinois_log "downloading CWAgent"
+        rpmfile=$(mktemp -t amazon-cloudwatch-agent.XXXXXXXX.rpm); tmpfiles+=("$rpmfile")
         wget -O "$rpmfile" "https://s3.{{v1.region}}.amazonaws.com/amazoncloudwatch-agent-{{v1.region}}/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm"
 
-        yum_maxwait=40
-        while [[ -e /var/run/yum.pid && $yum_maxwait -gt 0 ]] && kill -CHLD $(</var/run/yum.pid); do
-            echo "Waiting for another yum process..."
-            sleep 5
-            (( yum_maxwait-- )) || :
-        done
-        yum install -y "$rpmfile"
+        illinois_log "installing CWAgent"
+        illinois_rpm_install "$rpmfile"
+
+        cfg_file=/etc/rsyslog.conf
+        cfg_file=$(mktemp -t rsyslog.XXXXXXXX.conf); tmpfiles+=("$cfg_file")
+        cp /etc/rsyslog.conf "$cfg_file"
+        rsyslog_restart=no
+
+        if ! egrep -q '^\s*\$FileCreateMode\s+0[6420][40]0\s*(\s+#.*)?$' "$cfg_file"; then
+            illinois_log "setting rsyslog file creation mode"
+            if egrep -q '^\s*\$FileCreateMode\s+' "$cfg_file"; then
+                sed -i -re 's/^\s*\$FileCreateMode\s+[^#]+(\s+#.*)?$/$FileCreateMode 0640\1/' "$cfg_file"
+            else
+                sed -i -re '/^#### GLOBAL DIRECTIVES ####/a $FileCreateMode 0640' "$cfg_file"
+            fi
+            rsyslog_restart=yes
+        fi
+
+        if ! egrep -q '^\s*\$ActionFileDefaultTemplate\s+RSYSLOG_FileFormat\s*(\s+#.*)?$' "$cfg_file"; then
+            illinois_log "setting rsyslog modern format"
+            if egrep -q '^\s*\$ActionFileDefaultTemplate\s+' "$cfg_file"; then
+                sed -i -re \
+                    's/^\s*\$ActionFileDefaultTemplate\s+[^#]+(\s+#.*)?$/$ActionFileDefaultTemplate RSYSLOG_FileFormat\1/' \
+                    "$cfg_file"
+            else
+                sed -i -re \
+                    '/^#### GLOBAL DIRECTIVES ####/a $ActionFileDefaultTemplate RSYSLOG_FileFormat' \
+                    "$cfg_file"
+            fi
+            rsyslog_restart=yes
+        fi
+
+        if [[ $rsyslog_restart = "yes" ]]; then
+            illinois_log "restarting rsyslog"
+            if rsyslogd -N1 -f "$cfg_file"; then
+                cp "$cfg_file" /etc/rsyslog.conf
+                systemctl restart rsyslog
+            else
+                illinois_log err "errors in the edited rsyslog.conf"
+            fi
+        fi
 
         [[ -e /etc/opt/illinois/cloud-init/ec2logs.conf ]] && . /etc/opt/illinois/cloud-init/ec2logs.conf
 
@@ -186,6 +221,9 @@ write_files:
         chown root:root /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
         chmod 0644 /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 
+        illinois_log "translating CWAgent config file"
         /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
+
+        illinois_init_status finished
 
 merge_type: 'list(append)+dict(recurse_array)+str()'
