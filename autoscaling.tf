@@ -207,6 +207,7 @@ resource "aws_launch_template" "bastion" {
 resource "aws_autoscaling_group" "bastion" {
     depends_on = [
         time_sleep.bastion_role,
+        aws_efs_mount_target.sharedfs,
     ]
 
     name             = local.asg_name
