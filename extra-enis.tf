@@ -209,6 +209,7 @@ module "lambda_addExtraENIs" {
     }
 
     cloudwatch_logs_retention_in_days = 7
+    cloudwatch_logs_kms_key_id        = aws_kms_key.data.arn
 }
 
 resource "aws_cloudwatch_event_rule" "lambda_addExtraENIs_BastionInitializationStatus" {

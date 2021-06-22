@@ -1,12 +1,4 @@
 # =========================================================
-# Data
-# =========================================================
-
-data "aws_kms_alias" "efs" {
-    name = "alias/aws/elasticfilesystem"
-}
-
-# =========================================================
 # Resources
 # =========================================================
 
@@ -38,7 +30,7 @@ resource "aws_security_group" "sharedfs" {
 
 resource "aws_efs_file_system" "sharedfs" {
     encrypted  = true
-    kms_key_id = data.aws_kms_alias.efs.target_key_arn
+    kms_key_id = aws_kms_key.data.arn
 
     tags = {
         Name               = "${local.name_prefix}bastion-sharedfs"

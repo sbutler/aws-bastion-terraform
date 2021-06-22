@@ -3,49 +3,57 @@
 # =========================================================
 
 resource "aws_cloudwatch_log_group" "ec2_auditlog" {
-    name = "/${local.name_prefix}bastion/var/log/audit/audit.log"
+    name = "/${local.loggroup_prefix}var/log/audit/audit.log"
 
     retention_in_days = 90
+    kms_key_id        = aws_kms_key.data.arn
 }
 
 resource "aws_cloudwatch_log_group" "ec2_bootlog" {
-    name = "/${local.name_prefix}bastion/var/log/boot.log"
+    name = "/${local.loggroup_prefix}var/log/boot.log"
 
     retention_in_days = 90
+    kms_key_id        = aws_kms_key.data.arn
 }
 
 resource "aws_cloudwatch_log_group" "ec2_cloudinitlog" {
-    name = "/${local.name_prefix}bastion/var/log/cloud-init.log"
+    name = "/${local.loggroup_prefix}var/log/cloud-init.log"
 
     retention_in_days = 90
+    kms_key_id        = aws_kms_key.data.arn
 }
 
 resource "aws_cloudwatch_log_group" "ec2_cron" {
-    name = "/${local.name_prefix}bastion/var/log/cron"
+    name = "/${local.loggroup_prefix}var/log/cron"
 
     retention_in_days = 90
+    kms_key_id        = aws_kms_key.data.arn
 }
 
 resource "aws_cloudwatch_log_group" "ec2_messages" {
-    name = "/${local.name_prefix}bastion/var/log/messages"
+    name = "/${local.loggroup_prefix}var/log/messages"
 
     retention_in_days = 90
+    kms_key_id        = aws_kms_key.data.arn
 }
 
 resource "aws_cloudwatch_log_group" "ec2_secure" {
-    name = "/${local.name_prefix}bastion/var/log/secure"
+    name = "/${local.loggroup_prefix}var/log/secure"
 
     retention_in_days = 90
+    kms_key_id        = aws_kms_key.data.arn
 }
 
 resource "aws_cloudwatch_log_group" "ec2_ossec_alertsjson" {
-    name = "/${local.name_prefix}bastion/var/ossec/logs/alerts/alerts.json"
+    name = "/${local.loggroup_prefix}var/ossec/logs/alerts/alerts.json"
 
     retention_in_days = 90
+    kms_key_id        = aws_kms_key.data.arn
 }
 
 resource "aws_cloudwatch_log_group" "ec2_ossec_osseclog" {
-    name = "/${local.name_prefix}bastion/var/ossec/logs/ossec.log"
+    name = "/${local.loggroup_prefix}var/ossec/logs/ossec.log"
 
     retention_in_days = 90
+    kms_key_id        = aws_kms_key.data.arn
 }
