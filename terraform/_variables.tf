@@ -87,20 +87,20 @@ variable "internal_subnets" {
 
 variable "extra_enis" {
     type        = list(object({
-                    subnet_names      = list(string)
-                    description       = optional(string)
-                    prefix_list_names = list(string)
+                    subnets      = list(string)
+                    description  = optional(string)
+                    prefix_lists = list(string)
                 }))
-    description = "List of extra ENIs to attach to the bastion host. You can configure what routes this ENI is used for by provising prefix list IDs and/or VPC IDs."
+    description = "List of extra ENIs to attach to the bastion host. You can configure what routes this ENI is used for by provising prefix list names or IDs and/or VPC IDs."
     default = []
 
     validation {
-        condition     = alltrue([ for o in var.extra_enis : length(o.subnet_names) > 0 ])
-        error_message = "You must specify a subnet name for each availability zone."
+        condition     = alltrue([ for o in var.extra_enis : length(o.subnets) > 0 ])
+        error_message = "You must specify a subnet name or ID for each availability zone."
     }
 
     validation {
-        condition     = alltrue([ for o in var.extra_enis : length(o.prefix_list_names) > 0 ])
-        error_message = "You must specify a prefix list name for each ENI."
+        condition     = alltrue([ for o in var.extra_enis : length(o.prefix_lists) > 0 ])
+        error_message = "You must specify a prefix list name or ID for each ENI."
     }
 }

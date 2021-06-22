@@ -4,22 +4,24 @@
 
 data "aws_subnet" "extra_enis" {
     for_each = zipmap(
-        flatten([ for o_idx, o in var.extra_enis : [ for v_idx, v in o.subnet_names : "${o_idx}.${v_idx}" ] ]),
-        flatten(var.extra_enis[*].subnet_names)
+        flatten([ for o_idx, o in var.extra_enis : [ for v_idx, v in o.subnets : "${o_idx}.${v_idx}" ] ]),
+        flatten(var.extra_enis[*].subnets)
     )
 
-    tags = {
+    id   = can(regex("^subnet-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? each.value : null
+    tags = can(regex("^subnet-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? null : {
         Name = each.value
     }
 }
 
 data "aws_ec2_managed_prefix_list" "extra_enis" {
     for_each = zipmap(
-        flatten([ for o_idx, o in var.extra_enis : [ for v_idx, v in o.prefix_list_names : "${o_idx}.${v_idx}" ] ]),
-        flatten(var.extra_enis[*].prefix_list_names)
+        flatten([ for o_idx, o in var.extra_enis : [ for v_idx, v in o.prefix_lists : "${o_idx}.${v_idx}" ] ]),
+        flatten(var.extra_enis[*].prefix_lists)
     )
 
-    name = each.value
+    id   = can(regex("^pl-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? each.value : null
+    name = can(regex("^pl-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? null : each.value
 }
 
 # =========================================================
@@ -149,8 +151,8 @@ locals {
             description = ""
         }),
         {
-            subnet_ids = { for v_idx, v in o.subnet_names : data.aws_subnet.extra_enis["${o_idx}.${v_idx}"].availability_zone => data.aws_subnet.extra_enis["${o_idx}.${v_idx}"].id }
-            prefix_list_ids = [ for v_idx, v in o.prefix_list_names : data.aws_ec2_managed_prefix_list.extra_enis["${o_idx}.${v_idx}"].id ]
+            subnet_ids = { for v_idx, v in o.subnets : data.aws_subnet.extra_enis["${o_idx}.${v_idx}"].availability_zone => data.aws_subnet.extra_enis["${o_idx}.${v_idx}"].id }
+            prefix_list_ids = [ for v_idx, v in o.prefix_lists : data.aws_ec2_managed_prefix_list.extra_enis["${o_idx}.${v_idx}"].id ]
         }
     )]
     extra_enis_subnet_ids       = [ for s in data.aws_subnet.extra_enis: s.id ]

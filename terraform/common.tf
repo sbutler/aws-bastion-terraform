@@ -34,7 +34,9 @@ data "aws_subnet" "public" {
     count = length(var.public_subnets)
 
     state = "available"
-    tags = {
+
+    id   = local.public_subnet_is_id[count.index] ? var.public_subnets[count.index] : null
+    tags = local.public_subnet_is_id[count.index] ? null : {
         Name = var.public_subnets[count.index]
     }
 }
@@ -43,7 +45,9 @@ data "aws_subnet" "internal" {
     count = length(var.internal_subnets)
 
     state = "available"
-    tags = {
+
+    id   = local.internal_subnet_is_id[count.index] ? var.internal_subnets[count.index] : null
+    tags = local.internal_subnet_is_id[count.index] ? null : {
         Name = var.internal_subnets[count.index]
     }
 }
@@ -58,7 +62,10 @@ locals {
     internal_vpc_id = data.aws_subnet.internal[0].vpc_id
 
     public_subnet_ids   = data.aws_subnet.public[*].id
-    internal_subnet_ids = data.aws_subnet.internal[*].id
+    public_subnet_is_id = [ for s in var.public_subnets : can(regex("^subnet-([a-f0-9]{8}|[a-f0-9]{17})$", s)) ]
+
+    internal_subnet_ids   = data.aws_subnet.internal[*].id
+    internal_subnet_is_id = [ for s in var.internal_subnets : can(regex("^subnet-([a-f0-9]{8}|[a-f0-9]{17})$", s)) ]
 }
 
 # =========================================================
