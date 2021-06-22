@@ -141,11 +141,10 @@ write_files:
                                 "log_stream_name": "{instance_id}"
                             },
                             {
-                                "file_path": "/var/ossec/logs/alerts/alerts.log",
+                                "file_path": "/var/ossec/logs/alerts/alerts.json",
                                 "timezone": "Local",
-                                "timestamp_format": "%Y %b %d %H:%M:%S",
-                                "multi_line_start_pattern": "^\\\\*\\\\*\\\\s+Alert\\\\s+\\\\d+\\\\.\\\\d+:",
-                                "log_group_name": "/${loggroup_prefix}var/ossec/logs/alerts/alerts.log",
+                                "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
+                                "log_group_name": "/${loggroup_prefix}var/ossec/logs/alerts/alerts.json",
                                 "log_stream_name": "{instance_id}"
                             }
                         ]

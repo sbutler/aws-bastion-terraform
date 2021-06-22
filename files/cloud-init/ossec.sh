@@ -108,6 +108,8 @@ cat > /var/ossec/etc/ossec-server.conf <<EOF
   <global>
     <email_notification>no</email_notification>
 
+    <jsonout_output>yes</jsonout_output>
+
     <white_list>127.0.0.1/8</white_list>
     <white_list>::1</white_list>
 EOF
