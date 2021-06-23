@@ -383,7 +383,7 @@ Resources:
                     "aws:ResourceTag/Project": !Ref "AWS::StackName"
                     "ec2:Owner": amazon
 
-              - Sid: KMS Grants
+              - Sid: KMSGrants
                 Effect: Allow
                 Action:
                   - "kms:CreateGrant"
@@ -395,7 +395,7 @@ Resources:
                   Bool:
                     "kms:GrantIsForAWSResource": "true"
 
-              - Sid: Lambda EventSourceMappings
+              - Sid: LambdaEventSourceMappings
                 Effect: Allow
                 Action:
                   - "lambda:CreateEventSourceMapping"
@@ -411,7 +411,7 @@ Resources:
                       - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
                       - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
 
-              - Sid: Events ReadWrite
+              - Sid: EventsReadWrite
                 Effect: Allow
                 Action:
                   - "events:DeleteRule"
@@ -477,7 +477,6 @@ Resources:
           cache:
             paths:
               - repo/terraform/.terraform/**/*
-      BadgeEnabled: true
       ConcurrentBuildLimit: 1
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
@@ -513,7 +512,7 @@ Resources:
         Type: NO_ARTIFACTS
       Cache:
         Type: LOCAL
-        Modes: [ LOCAL_SOURCE_CACHE, LOCAL_CUSTOM_CACHE ]
+        Modes: [ LOCAL_CUSTOM_CACHE ]
       LogsConfig:
         CloudWatchLogs:
           Status: ENABLED
