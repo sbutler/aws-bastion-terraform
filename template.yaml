@@ -163,6 +163,32 @@ Resources:
                   - "dynamodb:PutItem"
                   - "dynamodb:DeleteItem"
                 Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StateLockTableName}"
+        - PolicyName: parameters
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadOnly
+                Effect: Allow
+                Action:
+                  - "ssm:DescribeParameters"
+                  - "kms:ListKeys"
+                Resource: "*"
+              - Sid: ReadWrite
+                Effect: Allow
+                Action:
+                  - "ssm:PutParameter"
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ssh/*"
+              - Sid: KMSReadWrite
+                Effect: Allow
+                Action:
+                  - "kms:Encrypt"
+                  - "kms:GenerateDataKey"
+                Resource:
+                  - !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+                Condition:
+                  ArnLike:
+                    "kms:EncryptionContext:PARAMETER_ARN": !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ssh/*"
         - PolicyName: deploy
           PolicyDocument:
             Version: "2012-10-17"
@@ -473,6 +499,7 @@ Resources:
             build:
               on-failure: ABORT
               commands:
+                - ./repo/codebuild/bin/update-hostkeys.sh "$TF_VAR_project"
                 - ./repo/codebuild/bin/deploy.sh "$PWD/repo/terraform/"
           cache:
             paths:
