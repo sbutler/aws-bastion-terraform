@@ -54,7 +54,7 @@ data "aws_iam_policy_document" "assets" {
 # =========================================================
 
 resource "aws_s3_bucket" "assets" {
-    bucket_prefix = "${local.name_prefix}bastion-assets-"
+    bucket_prefix = "${local.name_prefix}assets-"
 
     acl = "private"
     versioning {

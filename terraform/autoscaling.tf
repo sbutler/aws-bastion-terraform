@@ -46,7 +46,7 @@ data "cloudinit_config" "bastion_userdata" {
                 region      = data.aws_region.current.name
                 contact     = var.contact
                 asg_name    = local.asg_name
-                prompt_name = "${local.name_prefix}bastion"
+                prompt_name = local.name
 
                 sharedfs_id           = aws_efs_file_system.sharedfs.id
                 sharedfs_home_uofi_id = aws_efs_access_point.sharedfs_home_uofi.id
@@ -106,9 +106,9 @@ EOF
 # =========================================================
 
 locals {
-    asg_name            = "${local.name_prefix}bastion"
-    instance_name       = "${local.name_prefix}bastion"
-    security_group_name = "${local.name_prefix}bastion"
+    asg_name            = local.name
+    instance_name       = local.name
+    security_group_name = local.name
 }
 
 # =========================================================
@@ -116,7 +116,7 @@ locals {
 # =========================================================
 
 resource "aws_security_group" "bastion" {
-    name_prefix = "${local.name_prefix}bastion-"
+    name_prefix = local.name_prefix
     description = "Bastion host group."
     vpc_id      = local.vpc_id
 
@@ -146,7 +146,7 @@ resource "aws_security_group" "bastion" {
 }
 
 resource "aws_launch_template" "bastion" {
-    name_prefix = "${local.name_prefix}bastion-"
+    name_prefix = local.name_prefix
     description = "Bastion host configuration"
 
     image_id      = data.aws_ami.amazon_linux2.id
@@ -190,12 +190,12 @@ resource "aws_launch_template" "bastion" {
         resource_type = "volume"
         tags = merge(
             local.default_tags,
-            { Name = "${local.name_prefix}bastion-root" },
+            { Name = "${local.name_prefix}root" },
         )
     }
 
     tags = {
-        Name = "${local.name_prefix}bastion"
+        Name = local.name
     }
 
     lifecycle {

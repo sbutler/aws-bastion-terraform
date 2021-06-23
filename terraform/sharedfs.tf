@@ -3,7 +3,7 @@
 # =========================================================
 
 resource "aws_security_group" "sharedfs" {
-    name_prefix = "${local.name_prefix}bastion-sharedfs-"
+    name_prefix = "${local.name_prefix}sharedfs-"
     description = "Shared filesystem for bastion hosts."
     vpc_id      = local.internal_vpc_id
 
@@ -33,7 +33,7 @@ resource "aws_efs_file_system" "sharedfs" {
     kms_key_id = aws_kms_key.data.arn
 
     tags = {
-        Name               = "${local.name_prefix}bastion-sharedfs"
+        Name               = "${local.name_prefix}sharedfs"
         DataClassification = "Internal"
     }
 

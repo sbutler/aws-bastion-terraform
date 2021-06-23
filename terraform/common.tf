@@ -73,8 +73,9 @@ locals {
 # =========================================================
 
 locals {
-    name_prefix = "${var.project}-"
-    is_debug    = var.environment != "prod"
+    name        = var.project
+    name_prefix = "${local.name}-"
+    is_debug    = !contains(["prod", "production"], lower(var.environment))
 
     falcon_sensor_package_match = var.falcon_sensor_package == null ? {
         bucket = null
@@ -83,11 +84,11 @@ locals {
     falcon_sensor_package_bucket   = lookup(local.falcon_sensor_package_match, "bucket", null)
     falcon_sensor_package_key      = lookup(local.falcon_sensor_package_match, "key", null)
     has_falcon_sensor              = local.falcon_sensor_package_bucket != null && local.falcon_sensor_package_key != null
-    falcon_sensor_parameter_prefix = "${local.name_prefix}bastion/falcon-sensor/"
+    falcon_sensor_parameter_prefix = "${local.name}/falcon-sensor/"
 
-    loggroup_prefix        = "${local.name_prefix}bastion/"
-    metrics_namespace      = "${local.name_prefix}bastion"
-    sss_parameter_prefix   = "${local.name_prefix}bastion/sss/"
-    ssh_parameter_prefix   = "${local.name_prefix}bastion/ssh/"
-    ossec_parameter_prefix = "${local.name_prefix}bastion/ossec/"
+    loggroup_prefix        = "${local.name}/"
+    metrics_namespace      = "${local.name}"
+    sss_parameter_prefix   = "${local.name}/sss/"
+    ssh_parameter_prefix   = "${local.name}/ssh/"
+    ossec_parameter_prefix = "${local.name}/ossec/"
 }

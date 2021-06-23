@@ -144,7 +144,7 @@ data "aws_iam_policy_document" "lambda_addExtraENIs" {
 # =========================================================
 
 locals {
-    extra_enis_name = "${local.name_prefix}bastion Extra ENI"
+    extra_enis_name = "${local.name} Extra ENI"
 
     extra_enis = [ for o_idx, o in var.extra_enis : merge(
         defaults(o, {
@@ -171,7 +171,7 @@ module "lambda_addExtraENIs" {
     source  = "terraform-aws-modules/lambda/aws"
     version = "2.4.0"
 
-    function_name = "${local.name_prefix}bastion-addExtraENIs"
+    function_name = "${local.name_prefix}addExtraENIs"
     description   = "Add extra ENIs to a bastion instance."
     handler       = "add_extra_enis.lambda_handler"
     runtime       = "python3.8"
@@ -215,7 +215,7 @@ module "lambda_addExtraENIs" {
 }
 
 resource "aws_cloudwatch_event_rule" "lambda_addExtraENIs_BastionInitializationStatus" {
-    name_prefix   = "${local.name_prefix}bastion-addExtraENIs-"
+    name_prefix   = "${local.name_prefix}addExtraENIs-"
     description   = "Add extra bastion ENIs when the latest host status is ready."
     event_pattern = <<EOF
 {

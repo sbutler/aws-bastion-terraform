@@ -165,13 +165,13 @@ data "aws_iam_policy_document" "bastion_falcon_sensor" {
 # =========================================================
 
 resource "aws_iam_instance_profile" "bastion" {
-    name_prefix = "${local.name_prefix}bastion-"
+    name_prefix = local.name_prefix
     role        = aws_iam_role.bastion.name
 }
 
 resource "aws_iam_role" "bastion" {
-    name_prefix = "${local.name_prefix}bastion-"
-    description = "EC2 ${local.name_prefix}bastion instance role"
+    name_prefix = local.name_prefix
+    description = "EC2 ${local.name} instance role"
 
     assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 }

@@ -4,7 +4,7 @@
 
 variable "service" {
     type        = string
-    description = "Service name (match Service Catalog where possible)."
+    description = "Service Catalog name for these resources."
 }
 
 variable "contact" {
@@ -14,7 +14,12 @@ variable "contact" {
 
 variable "data_classification" {
     type        = string
-    description = "Public, Internal, Sensitive, or HighRisk (choose the most rigorous standard that applies)."
+    description = "Data Classification value for what's stored and available through this host."
+
+    validation {
+        condition = contains(["Public", "Internal", "Sensitive", "HighRisk"], var.data_classification)
+        error_message = "Must be one of: Public, Internal, Sensitive, or HighRisk."
+    }
 }
 
 variable "environment" {
@@ -23,14 +28,20 @@ variable "environment" {
     default     = ""
 
     validation {
-        condition     = var.environment == "" || contains(["prod", "test", "dev", "poc"], var.environment)
-        error_message = "Value must be one of: prod, test, dev, or poc."
+        condition     = var.environment == "" || contains(["prod", "production", "test", "dev", "development", "devtest", "poc"], lower(var.environment))
+        error_message = "Value must be one of: prod, production, test, dev, development, devtest, or poc."
     }
 }
 
 variable "project" {
     type        = string
-    description = "Name of the project for this bastion."
+    description = "Project name within the service. This is used as part of resource names, so must be a simple alpha-numeric string."
+    default     = "bastion"
+
+    validation {
+        condition     = can(regex("^[a-zA-Z][a-zA-Z0-9-]+[a-zA-Z0-9]$", var.project))
+        error_message = "Must start with a letter (a-z), end with a letter or number, and contain only letters, numbers, and dashes."
+    }
 }
 
 # =========================================================
@@ -39,7 +50,7 @@ variable "project" {
 
 variable "hostname" {
     type        = string
-    description = "Bastion hostname, as configured on the instance."
+    description = "Hostname of the bastion host that you will associate with the IP."
 
     validation {
         condition     = can(regex("^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,61}[a-zA-Z0-9])?\\.[a-zA-Z]{2,}$", var.hostname))
@@ -49,13 +60,13 @@ variable "hostname" {
 
 variable "instance_type" {
     type        = string
-    description = "Bastion instance type."
+    description = "Type of the instance to launch, which affects cost and features."
     default     = "t3.micro"
 }
 
 variable "key_name" {
     type        = string
-    description = "SSH key name to use for instances."
+    description = "EC2 SSH KeyPair for allowing access via the builtin account (ec2-user)."
 }
 
 variable "enhanced_monitoring" {

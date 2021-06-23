@@ -60,7 +60,7 @@ resource "aws_eip" "bastion" {
     vpc = true
 
     tags = {
-        Name = "${local.name_prefix}bastion"
+        Name = local.name
     }
 
     lifecycle {
@@ -76,7 +76,7 @@ module "lambda_associateEIP" {
     source  = "terraform-aws-modules/lambda/aws"
     version = "2.4.0"
 
-    function_name = "${local.name_prefix}bastion-associateEIP"
+    function_name = "${local.name_prefix}associateEIP"
     description   = "Associate an EIP with a bastion instance."
     handler       = "associate_eip.lambda_handler"
     runtime       = "python3.8"
@@ -110,7 +110,7 @@ module "lambda_associateEIP" {
 }
 
 resource "aws_cloudwatch_event_rule" "lambda_associateEIP_BastionInitializationStatus" {
-    name_prefix   = "${local.name_prefix}bastion-associateEIP-"
+    name_prefix   = "${local.name_prefix}associateEIP-"
     description   = "Associate the bastion EIP when the latest host status is ready."
     event_pattern = <<EOF
 {

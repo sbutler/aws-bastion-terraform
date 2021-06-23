@@ -43,8 +43,8 @@ data "aws_iam_policy_document" "kms_data" {
             values = [
                 "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/${local.loggroup_prefix}*",
                 "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/${local.loggroup_prefix}*:*",
-                "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/aws/lambda/${local.name_prefix}bastion-*",
-                "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/aws/lambda/${local.name_prefix}bastion-*:*",
+                "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/aws/lambda/${local.name_prefix}*",
+                "arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/aws/lambda/${local.name_prefix}*:*",
             ]
         }
     }
@@ -129,9 +129,13 @@ resource "aws_kms_key" "data" {
 
     deletion_window_in_days = 7
     enable_key_rotation     = true
+
+    tags = {
+        Name = "${local.name_prefix}data"
+    }
 }
 
 resource "aws_kms_alias" "data" {
-    name          = "alias/${local.name_prefix}bastion/data"
+    name          = "alias/${local.name}/data"
     target_key_id = aws_kms_key.data.id
 }
