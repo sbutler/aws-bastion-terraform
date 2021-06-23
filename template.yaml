@@ -1,0 +1,526 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploy a UIUC Bastion Host with automation.
+
+Parameters:
+  SourceURL:
+    Type: String
+    Description: HTTPS URL to the UIUC Bastion Host git repository.
+    AllowedPattern: "^https://.+"
+    ConstraintDescription: Must be an HTTPS URL to a git repository.
+  SourceBranch:
+    Type: String
+    Description: The name of the branch to build.
+    Default: main
+    MinLength: 3
+  StateBucketName:
+    Type: String
+    Description: Name of the S3 bucket to store terraform state.
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]+[a-z0-9.]$"
+    ConstraintDescription: Must be a valid S3 bucket name.
+  StateObjectKey:
+    Type: String
+    Description: Object key (path) for the terraform state in the bucket. This must be unique for each deployment.
+    Default: "bastion/terraform.tfstate"
+    AllowedPattern: "^[^/].*"
+    ConstraintDescription: Must be a valid S3 object key.
+  StateLockTableName:
+    Type: String
+    Description: Name of a DynamoDB table for terraform state locking.
+    Default: terraform
+    MinLength: 3
+
+  Service:
+    Type: String
+    Description: Service Catalog name for these resources.
+  Contact:
+    Type: String
+    Description: Service email address.
+  DataClassification:
+    Type: String
+    Description: Data Classification value for what's stored and available through this host.
+    Default: Internal
+    AllowedValues: [ Public, Internal, Sensitive, HighRisk ]
+  Environment:
+    Type: String
+    Description: Environment name (prod, test, dev, or poc).
+    Default: ""
+    AllowedValues:
+      - ""
+      - Prod
+      - Production
+      - Test
+      - Dev
+      - Development
+      - DevTest
+      - POC
+      - prod
+      - production
+      - test
+      - dev
+      - development
+      - devtest
+      - poc
+
+  Hostname:
+    Type: String
+    Description: Hostname of the bastion host that you will associate with the IP.
+    AllowedPattern: "^[a-zA-Z0-9]([a-zA-Z0-9.-]{0,61}[a-zA-Z0-9])?\\.[a-zA-Z]{2,}$"
+    ConstraintDescription: Must be a validly formatted hostname.
+  InstanceType:
+    Type: String
+    Description: Type of the instance to launch, which affects cost and features.
+    Default: t3.micro
+  SSHKeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 SSH KeyPair for allowing access via the builtin account (ec2-user).
+  EnhancedMonitoring:
+    Type: String
+    Description: Use enahanced/detailed monitoring on supported resources.
+    Default: "false"
+    AllowedValues: [ "true", "false" ]
+  FalconSensorPackage:
+    Type: String
+    Description: S3 URL (s3://bucket/path/to/sensor.rpm) to download the CrowdStrike Falcon Sensor (optional).
+    Default: ""
+    AllowedPattern: "^(s3://[a-z0-9][a-z0-9.-]+[a-z0-9.]/.+\\.rpm)?$"
+    ConstraintDescription: The S3 URL must be empty or of the form "s3://bucket/path/to/sensor.rpm".
+
+  PublicSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet names for public access where the primary IP will be.
+  InternalSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet names to use for internal resources unreachable from outside the VPC.
+  ExtraENIs:
+    Type: String
+    Description: List of extra ENIs to attach to the bastion host (in HCL format). You can configure what routes this ENI is used for by provising prefix list names or IDs and/or VPC IDs.
+    Default: ""
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: Source Code
+        Parameters:
+          - SourceURL
+          - SourceBranch
+      - Label: Terraform
+        Parameters:
+          - StateBucketName
+          - StateObjectKey
+          - StateLockTableName
+      - Label: Tagging
+        Parameters:
+          - Service
+          - Contact
+          - DataClassification
+          - Environment
+      - Label: Instance
+        Parameters:
+          - Hostname
+          - InstanceType
+          - SSHKeyName
+          - EnhancedMonitoring
+          - FalconSensorPackage
+      - Label: Networking
+        Parameters:
+          - PublicSubnets
+          - InternalSubnets
+          - ExtraENIs
+
+Resources:
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Allow CodeBuild to run terraform to deploy the bastion host.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action: [ 'sts:AssumeRole' ]
+      Path: /
+      Policies:
+        - PolicyName: terraform
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "s3:GetBucketLocation"
+                Resource: "*"
+              - Effect: Allow
+                Action: "s3:ListBucket"
+                Resource: !Sub "arn:aws:s3:::${StateBucketName}"
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                Resource: !Sub "arn:aws:s3:::${StateBucketName}/${StateObjectKey}"
+              - Effect: Allow
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:DeleteItem"
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StateLockTableName}"
+        - PolicyName: deploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadOnly
+                Effect: Allow
+                Action:
+                  - "ec2:DescribeAddresses*"
+                  - "ec2:DescribeImages"
+                  - "ec2:DescribeLaunchTemplate*"
+                  - "ec2:DescribeManagedPrefixLists"
+                  - "ec2:DescribeSecurityGroup*"
+                  - "ec2:DescribeStaleSecurityGroups"
+                  - "ec2:DescribeSubnets"
+                  - "ec2:DescribeVpcEndpoint*"
+                  - "ec2:GetManagedPrefixList*"
+
+                  - "autoscaling:Describe*"
+
+                  - "logs:DescribeLogGroups"
+                  - "logs:DescribeResourcePolicies"
+                  - "logs:TestMetricFilter"
+
+                  - "elasticfilesystem:DescribeAccountPreferences"
+                  - "elasticfilesystem:DescribeFileSystems"
+
+                  - "iam:ListInstanceProfiles"
+                  - "iam:ListPolicies"
+                  - "iam:ListRoles"
+
+                  - "kms:ListAliases"
+                  - "kms:ListKeys"
+
+                  - "s3:GetAccountPublicAccessBlock"
+                  - "s3:ListAllMyBuckets"
+
+                  - "lambda:GetAccountSettings"
+                  - "lambda:ListCodeSigningConfigs"
+                  - "lambda:ListEventSourceMappings"
+                  - "lambda:ListFunctions*"
+                  - "lambda:ListLayer*"
+
+                  - "events:DescribeRule"
+                  - "events:ListEventBuses"
+                  - "events:ListRule*"
+                  - "events:TestEventPattern"
+                Resource: '*'
+
+              - Sid: ReadWrite
+                Effect: Allow
+                Action:
+                  - "ec2:AllocateAddress"
+                  - "ec2:DisassociateAddress"
+                  - "ec2:ModifyAddressAttribute"
+                  - "ec2:ReleaseAddress"
+                  - "ec2:ResetAddressAttribute"
+
+                  - "ec2:CreateLaunchTemplate*"
+                  - "ec2:DeleteLaunchTemplate*"
+                  - "ec2:ModifyLaunchTemplate"
+
+                  - "ec2:AuthorizeSecurityGroup*"
+                  - "ec2:CreateSecurityGroup"
+                  - "ec2:DeleteSecurityGroup"
+                  - "ec2:RevokeSecurityGroup*"
+                  - "ec2:UpdateSecurityGroupRuleDescriptions*"
+
+                  - "ec2:CreateTags"
+                  - "ec2:DeleteTags"
+
+                  - "autoscaling:*"
+
+                  - "logs:AssociateKmsKey"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:DeleteLogGroup"
+                  - "logs:DeleteLogStream"
+                  - "logs:DeleteMetricFilter"
+                  - "logs:DeleteRetentionPolicy"
+                  - "logs:DeleteSubscriptionFilter"
+                  - "logs:DescribeLogStreams"
+                  - "logs:DescribeMetricFilters"
+                  - "logs:DescribeSubscriptionFilters"
+                  - "logs:DisassociateKmsKey"
+                  - "logs:ListTagsLogGroup"
+                  - "logs:PutMetricFilter"
+                  - "logs:PutRetentionPolicy"
+                  - "logs:PutSubscriptionFilter"
+                  - "logs:TagLogGroup"
+                  - "logs:UntagLogGroup"
+
+                  - "elasticfilesystem:Create*"
+                  - "elasticfilesystem:Delete*"
+                  - "elasticfilesystem:DescribeAccessPoints"
+                  - "elasticfilesystem:DescribeBackupPolicy"
+                  - "elasticfilesystem:DescribeFileSystemPolicy"
+                  - "elasticfilesystem:DescribeLifecycleConfiguration"
+                  - "elasticfilesystem:DescribeMountTargetSecurityGroups"
+                  - "elasticfilesystem:DescribeMountTargets"
+                  - "elasticfilesystem:DescribeTags"
+                  - "elasticfilesystem:ListTagsForResource"
+                  - "elasticfilesystem:ModifyMountTargetSecurityGroups"
+                  - "elasticfilesystem:PutBackupPolicy"
+                  - "elasticfilesystem:PutFileSystemPolicy"
+                  - "elasticfilesystem:PutLifecycleConfiguration"
+                  - "elasticfilesystem:TagResource"
+                  - "elasticfilesystem:UntagResource"
+                  - "elasticfilesystem:UpdateFileSystem"
+
+                  - "iam:AddRoleToInstanceProfile"
+                  - "iam:AttachRolePolicy"
+                  - "iam:CreateInstanceProfile"
+                  - "iam:CreatePolicy*"
+                  - "iam:CreateRole"
+                  - "iam:DeleteInstanceProfile"
+                  - "iam:DeletePolicy*"
+                  - "iam:DeleteRole*"
+                  - "iam:DetachRolePolicy"
+                  - "iam:GetInstanceProfile"
+                  - "iam:GetPolicy*"
+                  - "iam:GetRole*"
+                  - "iam:ListAttachedRolePolicies"
+                  - "iam:ListEntitiesForPolicy"
+                  - "iam:ListInstanceProfileTags"
+                  - "iam:ListInstanceProfilesForRole"
+                  - "iam:ListPolicy*"
+                  - "iam:ListRolePolicies"
+                  - "iam:ListRoleTags"
+                  - "iam:PassRole"
+                  - "iam:PutRole*"
+                  - "iam:RemoveRoleFromInstanceProfile"
+                  - "iam:SetDefaultPolicyVersion"
+                  - "iam:TagInstanceProfile"
+                  - "iam:TagPolicy"
+                  - "iam:TagRole"
+                  - "iam:UntagInstanceProfile"
+                  - "iam:UntagPolicy"
+                  - "iam:UntagRole"
+                  - "iam:UpdateAssumeRolePolicy"
+                  - "iam:UpdateRole*"
+
+                  - "kms:CreateAlias"
+                  - "kms:CreateKey"
+                  - "kms:DeleteAlias"
+                  - "kms:DescribeKey"
+                  - "kms:DisableKey"
+                  - "kms:DisableKeyRotation"
+                  - "kms:EnableKey"
+                  - "kms:EnableKeyRotation"
+                  - "kms:GetKeyPolicy"
+                  - "kms:ListGrants"
+                  - "kms:ListKeyPolicies"
+                  - "kms:ListResourceTags"
+                  - "kms:ListRetirableGrants"
+                  - "kms:PutKeyPolicy"
+                  - "kms:TagResource"
+                  - "kms:UntagResource"
+                  - "kms:UpdateAlias"
+                  - "kms:UpdateKeyDescription"
+
+                  - "s3:*"
+                  - "lambda:*"
+                Resource:
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:elastic-ip/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:launch-template/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:image/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:key-pair/${SSHKeyName}
+
+                  - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}
+                  - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}-*
+
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}:*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*:*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*:*
+
+                  - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/*
+                  - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:access-point/*
+
+                  - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}
+                  - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}-*
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}/*
+                  - !Sub arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}
+                  - !Sub arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}-*
+                  - !Sub arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}/*
+
+                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}
+                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}/*
+                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}-*
+                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*
+
+                  - !Sub arn:aws:s3:::${AWS::StackName}
+                  - !Sub arn:aws:s3:::${AWS::StackName}-*
+                  - !Sub arn:aws:s3:::${AWS::StackName}/*
+                  - !Sub arn:aws:s3:::${AWS::StackName}-*/*
+
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}:*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*:*
+
+                Condition:
+                  StringEqualsIfExists:
+                    "aws:RequestTag/Project": !Ref "AWS::StackName"
+                    "aws:ResourceTag/Project": !Ref "AWS::StackName"
+                    "ec2:Owner": amazon
+
+              - Sid: KMS Grants
+                Effect: Allow
+                Action:
+                  - "kms:CreateGrant"
+                  - "kms:RetireGrant"
+                  - "kms:RevokeGrant"
+                Resource:
+                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*
+                Condition:
+                  Bool:
+                    "kms:GrantIsForAWSResource": "true"
+
+              - Sid: Lambda EventSourceMappings
+                Effect: Allow
+                Action:
+                  - "lambda:CreateEventSourceMapping"
+                  - "lambda:DeleteEventSourceMapping"
+                  - "lambda:GetEventSourceMapping"
+                  - "lambda:UpdateEventSourceMapping"
+                Resource: "*"
+                Condition:
+                  ArnLike:
+                    "lambda:FunctionArn":
+                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
+                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
+                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
+                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+
+              - Sid: Events ReadWrite
+                Effect: Allow
+                Action:
+                  - "events:DeleteRule"
+                  - "events:DisableRule"
+                  - "events:EnableRule"
+                  - "events:ListTagsForResource"
+                  - "events:ListTargetsByRule"
+                  - "events:PutRule"
+                  - "events:PutTargets"
+                  - "events:RemoveTargets"
+                  - "events:TagResource"
+                  - "events:UntagResource"
+                Resource:
+                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}
+                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}-*
+                Condition:
+                  ArnLikeIfExists:
+                    "events:TargetArn":
+                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
+                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
+                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
+                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+      Tags:
+        - { Key: Service, Value: !Ref Service }
+        - { Key: Contact, Value: !Ref Contact }
+        - { Key: Environment, Value: !Ref Environment }
+        - { Key: Project, Value: !Ref "AWS::StackName" }
+
+  DeployProjectLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/codebuild/${AWS::StackName}-Deploy"
+      RetentionInDays: 7
+
+  DeployProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub "${AWS::StackName}-Deploy"
+      Description: Deploy the UIUC Bastion Host terraform.
+      Source:
+        Type: NO_SOURCE
+        BuildSpec: |
+          version: 0.2
+          env:
+            shell: bash
+            variables:
+              TF_INPUT: "false"
+              TF_IN_AUTOMATION: "true"
+              TF_CLI_ARGS: "-no-color"
+          phases:
+            install:
+              runtime-versions:
+                python: 3.8
+            pre_build:
+              on-failure: ABORT
+              commands:
+                - git clone --depth 1 -b "$SOURCE_BRANCH" "$SOURCE_URL" repo
+                - chmod a+rx repo/codebuild/bin/*
+            build:
+              on-failure: ABORT
+              commands:
+                - ./repo/codebuild/bin/deploy.sh "$PWD/repo/terraform/"
+          cache:
+            paths:
+              - repo/terraform/.terraform/**/*
+      BadgeEnabled: true
+      ConcurrentBuildLimit: 1
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        EnvironmentVariables:
+          - { Name: AWS_REGION, Value: !Ref "AWS::Region" }
+          - { Name: SOURCE_URL, Value: !Ref SourceURL }
+          - { Name: SOURCE_BRANCH, Value: !Ref SourceBranch }
+          - { Name: STATE_BUCKET_NAME, Value: !Ref StateBucketName }
+          - { Name: STATE_OBJECT_KEY, Value: !Ref StateObjectKey }
+          - { Name: STATE_LOCK_TABLE_NAME, Value: !Ref StateLockTableName }
+
+          - { Name: TF_VAR_service, Value: !Ref Service }
+          - { Name: TF_VAR_contact, Value: !Ref Contact }
+          - { Name: TF_VAR_data_classification, Value: !Ref DataClassification }
+          - { Name: TF_VAR_environment, Value: !Ref Environment }
+          - { Name: TF_VAR_project, Value: !Ref "AWS::StackName" }
+
+          - { Name: TF_VAR_hostname, Value: !Ref Hostname }
+          - { Name: TF_VAR_instance_type, Value: !Ref InstanceType }
+          - { Name: TF_VAR_key_name, Value: !Ref SSHKeyName }
+          - { Name: TF_VAR_enhanced_monitoring, Value: !Ref EnhancedMonitoring }
+          - { Name: TF_VAR_falcon_sensor_package, Value: !Ref FalconSensorPackage }
+
+          - Name: TF_VAR_public_subnets
+            Value: !Join [ ",", !Ref PublicSubnets ]
+          - Name: TF_VAR_internal_subnets
+            Value: !Join [ ",", !Ref InternalSubnets ]
+          - { Name: TF_VAR_extra_enis, Value: !Ref ExtraENIs }
+      TimeoutInMinutes: 10
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Cache:
+        Type: LOCAL
+        Modes: [ LOCAL_SOURCE_CACHE, LOCAL_CUSTOM_CACHE ]
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+          GroupName: !Ref DeployProjectLogs
+      ServiceRole: !Ref DeployRole
+      Tags:
+        - { Key: Service, Value: !Ref Service }
+        - { Key: Contact, Value: !Ref Contact }
+        - { Key: Environment, Value: !Ref Environment }
+        - { Key: Project, Value: !Ref "AWS::StackName" }
