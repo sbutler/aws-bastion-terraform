@@ -5,10 +5,16 @@ set -e
 # exists a file for it.
 #
 #   $1: used to set the parameter store values we're looking at
+#   $2: hostname for the key comment
 
 project="$1"
 if [[ -z $project ]]; then
     echo "ERROR: no project as command line argument"
+    exit 1
+fi
+hostname="$2"
+if [[ -z $hostname ]]; then
+    echo "ERROR: no hostname as command line argument"
     exit 1
 fi
 
@@ -22,24 +28,20 @@ trap cleanup EXIT
 
 keysdir=$(mktemp -t -d update-hostkeys.XXXXXXXX.d); tmpfiles+=("$keysdir")
 
-echo "INFO: generating SSH hostkeys"
-ssh-keygen -A -f "$keysdir"
-# We don't need the pub files
-rm -f "$keysdir/etc/ssh/*.pub"
-
 echo "INFO: getting the names of host key files"
 readarray -t param_keys < <(aws ssm describe-parameters \
     --parameter-filters Key=Path,Values="/$project/ssh/" \
     --output text --query 'join(`"\n"`, Parameters[].Name)'
 )
 
-cd "$keysdir/etc/ssh"
-for f in ssh_host_*_key; do
-    param_name="/$project/ssh/$f"
+for t in rsa dsa ecdsa ed25519; do
+    param_name="/$project/ssh/ssh_host_${t}_key"
     if [[ ! " ${param_keys[@]} " =~ " $param_name " ]]; then
+        echo "INFO: generating new $t key"
+        ssh-keygen -t $t -C "root@$hostname" -N '' -f "$keysdir/$t"
         echo "INFO: updating host key $param_name"
         aws ssm put-parameter --name "$param_name" \
             --type SecureString \
-            --value file://$f
+            --value file://$keysdir/$t
     fi
 done
