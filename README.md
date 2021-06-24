@@ -223,7 +223,7 @@ use campus subnets or even the same public subnets specified above.
 
 ### extra_enis (list of objects)
 
-***This is an advanced networking option.**
+**This is an advanced networking option.**
 
 You can optionally have additional ENIs attached to the bastion hosts to reach
 resources in other subnets or VPCs, not local to your VPC. For instance, you
@@ -232,10 +232,11 @@ to connect to the application VPC.
 
 Each element in the `extra_enis` list is a map of keys:
 
-| Name | Required | Description |
-| subnets      | Yes | List of subnet names or IDs to allocate the ENI in. You must specify one in each availability zone of the public subnets. |
-| description  | No  | Optional description to set for the ENI when it is created. |
-| prefix_lists | Yes | List of prefix list names or IDs, used to adjust the routing table to properly route traffic through this ENI. |
+| Name         | Required | Description |
+| ------------ | -------- | ----------- |
+| subnets      | Yes      | List of subnet names or IDs to allocate the ENI in. You must specify one in each availability zone of the public subnets. |
+| description  | No       | Optional description to set for the ENI when it is created. |
+| prefix_lists | Yes      | List of prefix list names or IDs, used to adjust the routing table to properly route traffic through this ENI. |
 
 
 ## Deployment
