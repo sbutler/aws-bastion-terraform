@@ -502,19 +502,19 @@ Resources:
             install:
               runtime-versions:
                 python: 3.8
-            pre_build:
-              on-failure: ABORT
               commands:
-                - git clone --depth 1 -b "$SOURCE_BRANCH" "$SOURCE_URL" repo
-                - chmod a+rx repo/codebuild/bin/*
+                - 'git clone --depth 1 -b "$SOURCE_BRANCH" $SOURCE_URL $CODEBUILD_SRC_DIR/repo'
+                - 'chmod a+rx $CODEBUILD_SRC_DIR/repo/codebuild/bin/*'
+                - 'export TF_DATA_DIR="$CODEBUILD_SRC_DIR/.terraform"'
+                - 'mkdir -p $TF_DATA_DIR || :'
             build:
               on-failure: ABORT
               commands:
-                - ./repo/codebuild/bin/update-hostkeys.sh "$TF_VAR_project"
-                - ./repo/codebuild/bin/deploy.sh "$PWD/repo/terraform/"
+                - '$CODEBUILD_SRC_DIR/repo/codebuild/bin/update-hostkeys.sh "$TF_VAR_project" "$TF_VAR_hostname"'
+                - '$CODEBUILD_SRC_DIR/repo/codebuild/bin/deploy.sh $CODEBUILD_SRC_DIR/repo/terraform/'
           cache:
             paths:
-              - repo/terraform/.terraform/**/*
+              - .terraform/**/*
       ConcurrentBuildLimit: 1
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
