@@ -211,6 +211,7 @@ Resources:
                   - "ec2:DescribeImages"
                   - "ec2:DescribeLaunchTemplate*"
                   - "ec2:DescribeManagedPrefixLists"
+                  - "ec2:DescribePrefixLists"
                   - "ec2:DescribeSecurityGroup*"
                   - "ec2:DescribeStaleSecurityGroups"
                   - "ec2:DescribeSubnets"
