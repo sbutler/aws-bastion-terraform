@@ -128,7 +128,7 @@ Metadata:
           - ExtraENIs
 
 Resources:
-  DeployRole:
+  TerraformRole:
     Type: AWS::IAM::Role
     Properties:
       Description: Allow CodeBuild to run terraform to deploy the bastion host.
@@ -151,8 +151,10 @@ Resources:
                   - "logs:CreateLogStream"
                   - "logs:PutLogEvents"
                 Resource:
-                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DeployProjectLogs}
-                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DeployProjectLogs}:*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApplyProjectLogs}
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${ApplyProjectLogs}:*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DestroyProjectLogs}
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${DestroyProjectLogs}:*
         - PolicyName: terraform
           PolicyDocument:
             Version: "2012-10-17"
@@ -211,6 +213,7 @@ Resources:
                   - "ec2:DescribeImages"
                   - "ec2:DescribeLaunchTemplate*"
                   - "ec2:DescribeManagedPrefixLists"
+                  - "ec2:DescribeNetworkInterfaces"
                   - "ec2:DescribePrefixLists"
                   - "ec2:DescribeSecurityGroup*"
                   - "ec2:DescribeStaleSecurityGroups"
@@ -271,6 +274,7 @@ Resources:
                   - "ec2:CreateTags"
                   - "ec2:DeleteTags"
 
+                  - "ec2:RunInstances"
                   - "autoscaling:*"
 
                   - "logs:AssociateKmsKey"
@@ -343,19 +347,19 @@ Resources:
                   - "iam:UpdateRole*"
 
                   - "kms:CreateAlias"
-                  - "kms:CreateKey"
                   - "kms:DeleteAlias"
                   - "kms:DescribeKey"
                   - "kms:DisableKey"
                   - "kms:DisableKeyRotation"
                   - "kms:EnableKey"
                   - "kms:EnableKeyRotation"
-                  - "kms:GetKeyPolicy"
+                  - "kms:GetKey*"
                   - "kms:ListGrants"
                   - "kms:ListKeyPolicies"
                   - "kms:ListResourceTags"
                   - "kms:ListRetirableGrants"
                   - "kms:PutKeyPolicy"
+                  - "kms:ScheduleKeyDeletion"
                   - "kms:TagResource"
                   - "kms:UntagResource"
                   - "kms:UpdateAlias"
@@ -367,11 +371,12 @@ Resources:
                   - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:elastic-ip/*
                   - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
                   - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:launch-template/*
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
                   - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
                   - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
                   - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
                   - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:image/*
+                  - !Sub arn:aws:ec2:${AWS::Region}::image/*
                   - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:key-pair/${SSHKeyName}
 
                   - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}
@@ -420,7 +425,15 @@ Resources:
                     "aws:RequestTag/Project": !Ref "AWS::StackName"
                     "aws:ResourceTag/Project": !Ref "AWS::StackName"
                     "ec2:Owner": amazon
+                  ArnLikeIfExists:
+                    "ec2:InstanceProfile":
+                      - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}"
+                      - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*"
 
+              - Sid: KMSCreate
+                Effect: Allow
+                Action: "kms:CreateKey"
+                Resource: "*"
               - Sid: KMSGrants
                 Effect: Allow
                 Action:
@@ -463,6 +476,8 @@ Resources:
                   - "events:TagResource"
                   - "events:UntagResource"
                 Resource:
+                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}
+                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-*
                   - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}
                   - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}-*
                 Condition:
@@ -478,17 +493,16 @@ Resources:
         - { Key: Environment, Value: !Ref Environment }
         - { Key: Project, Value: !Ref "AWS::StackName" }
 
-  DeployProjectLogs:
+  ApplyProjectLogs:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/codebuild/${AWS::StackName}-Deploy"
+      LogGroupName: !Sub "/aws/codebuild/${AWS::StackName}-APPLY"
       RetentionInDays: 7
-
-  DeployProject:
+  ApplyProject:
     Type: AWS::CodeBuild::Project
     Properties:
-      Name: !Sub "${AWS::StackName}-Deploy"
-      Description: Deploy the UIUC Bastion Host terraform.
+      Name: !Sub "${AWS::StackName}-APPLY"
+      Description: Apply changes to the UIUC Bastion Host terraform.
       Source:
         Type: NO_SOURCE
         BuildSpec: |
@@ -546,7 +560,7 @@ Resources:
           - Name: TF_VAR_internal_subnets
             Value: !Join [ ",", !Ref InternalSubnets ]
           - { Name: TF_VAR_extra_enis, Value: !Ref ExtraENIs }
-      TimeoutInMinutes: 10
+      TimeoutInMinutes: 60
       Artifacts:
         Type: NO_ARTIFACTS
       Cache:
@@ -555,8 +569,93 @@ Resources:
       LogsConfig:
         CloudWatchLogs:
           Status: ENABLED
-          GroupName: !Ref DeployProjectLogs
-      ServiceRole: !Ref DeployRole
+          GroupName: !Ref ApplyProjectLogs
+      ServiceRole: !Ref TerraformRole
+      Tags:
+        - { Key: Service, Value: !Ref Service }
+        - { Key: Contact, Value: !Ref Contact }
+        - { Key: Environment, Value: !Ref Environment }
+        - { Key: Project, Value: !Ref "AWS::StackName" }
+
+
+  DestroyProjectLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/codebuild/${AWS::StackName}-DESTROY"
+      RetentionInDays: 7
+  DestroyProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub "${AWS::StackName}-DESTROY"
+      Description: Removes/Destroys the UIUC Bastion Host terraform.
+      Source:
+        Type: NO_SOURCE
+        BuildSpec: |
+          version: 0.2
+          env:
+            shell: bash
+            variables:
+              TF_INPUT: "false"
+              TF_IN_AUTOMATION: "true"
+              TF_CLI_ARGS: "-no-color"
+              TF_CLI_ARGS_plan: "-destroy"
+          phases:
+            install:
+              runtime-versions:
+                python: 3.8
+              commands:
+                - 'git clone --depth 1 -b "$SOURCE_BRANCH" $SOURCE_URL $CODEBUILD_SRC_DIR/repo'
+                - 'chmod a+rx $CODEBUILD_SRC_DIR/repo/codebuild/bin/*'
+                - 'export TF_DATA_DIR="$CODEBUILD_SRC_DIR/.terraform"'
+                - 'mkdir -p $TF_DATA_DIR || :'
+            build:
+              on-failure: ABORT
+              commands:
+                - '$CODEBUILD_SRC_DIR/repo/codebuild/bin/deploy.sh $CODEBUILD_SRC_DIR/repo/terraform/'
+          cache:
+            paths:
+              - .terraform/**/*
+      ConcurrentBuildLimit: 1
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        EnvironmentVariables:
+          - { Name: AWS_REGION, Value: !Ref "AWS::Region" }
+          - { Name: SOURCE_URL, Value: !Ref SourceURL }
+          - { Name: SOURCE_BRANCH, Value: !Ref SourceBranch }
+          - { Name: STATE_BUCKET_NAME, Value: !Ref StateBucketName }
+          - { Name: STATE_OBJECT_KEY, Value: !Ref StateObjectKey }
+          - { Name: STATE_LOCK_TABLE_NAME, Value: !Ref StateLockTableName }
+
+          - { Name: TF_VAR_service, Value: !Ref Service }
+          - { Name: TF_VAR_contact, Value: !Ref Contact }
+          - { Name: TF_VAR_data_classification, Value: !Ref DataClassification }
+          - { Name: TF_VAR_environment, Value: !Ref Environment }
+          - { Name: TF_VAR_project, Value: !Ref "AWS::StackName" }
+
+          - { Name: TF_VAR_hostname, Value: !Ref Hostname }
+          - { Name: TF_VAR_instance_type, Value: !Ref InstanceType }
+          - { Name: TF_VAR_key_name, Value: !Ref SSHKeyName }
+          - { Name: TF_VAR_enhanced_monitoring, Value: !Ref EnhancedMonitoring }
+          - { Name: TF_VAR_falcon_sensor_package, Value: !Ref FalconSensorPackage }
+
+          - Name: TF_VAR_public_subnets
+            Value: !Join [ ",", !Ref PublicSubnets ]
+          - Name: TF_VAR_internal_subnets
+            Value: !Join [ ",", !Ref InternalSubnets ]
+          - { Name: TF_VAR_extra_enis, Value: !Ref ExtraENIs }
+      TimeoutInMinutes: 60
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Cache:
+        Type: LOCAL
+        Modes: [ LOCAL_CUSTOM_CACHE ]
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+          GroupName: !Ref DestroyProjectLogs
+      ServiceRole: !Ref TerraformRole
       Tags:
         - { Key: Service, Value: !Ref Service }
         - { Key: Contact, Value: !Ref Contact }
