@@ -58,7 +58,7 @@ elif [[ ! -d $DEPLOY_DIR ]]; then
     exit 1
 fi
 
-cd "$DEPLOY_DIR1"
+cd "$DEPLOY_DIR"
 [[ -e "_providers-codebuild.tf" ]] || ln -s "$BASE_DIR/_providers.tf" _providers-codebuild.tf
 
 echo "INFO: running terraform init"
