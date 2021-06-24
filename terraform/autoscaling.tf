@@ -68,7 +68,7 @@ data "cloudinit_config" "bastion_userdata" {
                     [ for o in local.extra_enis : join(" ", o.prefix_list_ids) ]
                 ))
 
-                falcon_sensor_package  = coalesce(var.falcon_sensor_package, "")
+                falcon_sensor_package  = var.falcon_sensor_package == null ? "" : var.falcon_sensor_package
                 falcon_sensor_cid_path = "/${local.falcon_sensor_parameter_prefix}CID"
 
                 ossec_whitelists_path = "/${local.ossec_parameter_prefix}whitelists"
