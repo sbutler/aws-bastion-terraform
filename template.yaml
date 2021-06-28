@@ -199,18 +199,22 @@ Resources:
                 Effect: Allow
                 Action:
                   - "ssm:DescribeParameters"
+                  - "ssm:ListTagsForResource"
                   - "kms:ListKeys"
                 Resource: "*"
               - Sid: ReadWrite
                 Effect: Allow
                 Action:
+                  - "ssm:GetParameter*"
                   - "ssm:PutParameter"
+                  - "ssm:*Tags*"
                 Resource:
                   - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ssh/*"
                   - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/outputs/*"
               - Sid: KMSReadWrite
                 Effect: Allow
                 Action:
+                  - "kms:Decrypt"
                   - "kms:Encrypt"
                   - "kms:GenerateDataKey"
                 Resource:
