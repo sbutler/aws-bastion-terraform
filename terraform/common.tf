@@ -69,6 +69,16 @@ locals {
 }
 
 # =========================================================
+# Data: Extra EFS
+# =========================================================
+
+data "aws_efs_file_system" "extra" {
+    count = length(local.extra_efs)
+
+    file_system_id = values(local.extra_efs)[count.index].filesystem_id
+}
+
+# =========================================================
 # Locals
 # =========================================================
 
@@ -85,6 +95,11 @@ locals {
     falcon_sensor_package_key      = lookup(local.falcon_sensor_package_match, "key", null)
     has_falcon_sensor              = local.falcon_sensor_package_bucket != null && local.falcon_sensor_package_key != null
     falcon_sensor_parameter_prefix = "${local.name}/falcon-sensor/"
+
+    extra_efs = { for k, v in var.extra_efs : k => defaults(v, {
+        mount_target = "/mnt/${k}"
+        options      = "tls,noresvport"
+    }) }
 
     loggroup_prefix          = "${local.name}/"
     metrics_namespace        = "${local.name}"

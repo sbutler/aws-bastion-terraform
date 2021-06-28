@@ -36,6 +36,7 @@ export PATH="$BASE_DIR/bin:$PATH"
 
 [[ -z $TF_VAR_falcon_sensor_package ]] && unset TF_VAR_falcon_sensor_package
 [[ -z $TF_VAR_extra_enis ]] && unset TF_VAR_extra_enis
+[[ -z $TF_VAR_extra_efs ]] && unset TF_VAR_extra_efs
 
 if [[ -z $TF_VAR_public_subnets ]]; then
     unset TF_VAR_public_subnets

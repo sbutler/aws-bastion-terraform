@@ -20,9 +20,7 @@ illinois_init_status running
 
 illinois_efs_mount () {
     local name=$(basename "$1")
-    local efs_filesystem_id=''
-    local mount_target="/mnt/${name}"
-    local efs_options="tls,noresvport"
+    local efs_filesystem_id mount_target efs_options
 
     . "$1"
 
@@ -30,6 +28,9 @@ illinois_efs_mount () {
         illinois_log err "${name} does not have an 'efs_filesystem_id' set"
         return
     fi
+
+    : ${mount_target:=/mnt/${name}}
+    : ${efs_options:=tls,noresvport}
 
     local dir_src="$efs_filesystem_id"
     local dir_tgt="$mount_target"

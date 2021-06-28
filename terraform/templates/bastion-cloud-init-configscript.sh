@@ -6,7 +6,7 @@ EOF
 chmod 0644 "$file"
 chown root:root "$file"
 
-file=/etc/opt/illinois/cloud-init/efs/sharedfs
+file=/etc/opt/illinois/cloud-init/efs/bastion-sharedfs
 mkdir -p "$(dirname "$file")"
 cat << "EOF" > "$file"
 efs_filesystem_id=${sharedfs_id}
@@ -23,6 +23,18 @@ mount_target=/home/ad.uillinois.edu
 EOF
 chmod 0644 "$file"
 chown root:root "$file"
+
+%{for efs_name, efs_config in extra_efs }
+file=/etc/opt/illinois/cloud-init/efs/${efs_name}
+mkdir -p "$(dirname "$file")"
+cat << "EOF" > "$file"
+efs_filesystem_id=${efs_config.filesystem_id}
+mount_target=${efs_config.mount_target}
+efs_options=${efs_config.options}
+EOF
+chmod 0644 "$file"
+chown root:root "$file"
+%{ endfor ~}
 
 file=/etc/opt/illinois/cloud-init/ec2logs.conf
 mkdir -p "$(dirname "$file")"

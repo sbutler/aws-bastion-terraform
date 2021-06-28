@@ -102,6 +102,10 @@ Parameters:
     Type: String
     Description: List of extra ENIs to attach to the bastion host (in HCL format). You can configure what routes this ENI is used for by provising prefix list names or IDs and/or VPC IDs.
     Default: ""
+  ExtraEFS:
+    Type: String
+    Description: Map of extra EFS's to mount to the bastion host (in HCL format).
+    Default: ""
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -134,6 +138,7 @@ Metadata:
           - PublicSubnets
           - InternalSubnets
           - ExtraENIs
+          - ExtraEFS
 
 Conditions:
   HasDestroy: !Or
@@ -263,8 +268,8 @@ Resources:
               - "logs:DescribeResourcePolicies"
               - "logs:TestMetricFilter"
 
-              - "elasticfilesystem:DescribeAccountPreferences"
-              - "elasticfilesystem:DescribeFileSystems"
+              - "elasticfilesystem:Describe*"
+              - "elasticfilesystem:ListTagsForResource"
 
               - "iam:ListInstanceProfiles"
               - "iam:ListPolicies"
@@ -343,14 +348,6 @@ Resources:
               - "elasticfilesystem:DeleteFileSystemPolicy"
               - "elasticfilesystem:DeleteMountTarget"
               - "elasticfilesystem:DeleteTags"
-              - "elasticfilesystem:DescribeAccessPoints"
-              - "elasticfilesystem:DescribeBackupPolicy"
-              - "elasticfilesystem:DescribeFileSystemPolicy"
-              - "elasticfilesystem:DescribeLifecycleConfiguration"
-              - "elasticfilesystem:DescribeMountTargetSecurityGroups"
-              - "elasticfilesystem:DescribeMountTargets"
-              - "elasticfilesystem:DescribeTags"
-              - "elasticfilesystem:ListTagsForResource"
               - "elasticfilesystem:ModifyMountTargetSecurityGroups"
               - "elasticfilesystem:PutBackupPolicy"
               - "elasticfilesystem:PutFileSystemPolicy"
@@ -640,6 +637,7 @@ Resources:
           - Name: TF_VAR_internal_subnets
             Value: !Join [ ",", !Ref InternalSubnets ]
           - { Name: TF_VAR_extra_enis, Value: !Ref ExtraENIs }
+          - { Name: TF_VAR_extra_efs, Value: !Ref ExtraEFS }
       TimeoutInMinutes: 60
       Artifacts:
         Type: NO_ARTIFACTS
@@ -731,6 +729,7 @@ Resources:
           - Name: TF_VAR_internal_subnets
             Value: !Join [ ",", !Ref InternalSubnets ]
           - { Name: TF_VAR_extra_enis, Value: !Ref ExtraENIs }
+          - { Name: TF_VAR_extra_efs, Value: !Ref ExtraEFS }
       TimeoutInMinutes: 60
       Artifacts:
         Type: NO_ARTIFACTS

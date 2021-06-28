@@ -20,7 +20,7 @@ Any customizations you make to an instance through SSH will be lost. However,
 there are two locations on every instance that are preserved. You can use these
 two store your data or scripts:
 
-- `/mnt/sharedfs`
+- `/mnt/bastion-sharedfs`
 - `/home/ad.uillinois.edu`
 
 ## Prerequisites
@@ -238,6 +238,22 @@ Each element in the `extra_enis` list is a map of keys:
 | description  | No       | Optional description to set for the ENI when it is created. |
 | prefix_lists | Yes      | List of prefix list names or IDs, used to adjust the routing table to properly route traffic through this ENI. |
 
+### extra_efs (map of objects)
+
+**This is an advanced file system option.**
+
+You can optionally have additional EFS's mounted on the bastion hosts to access
+file systems used by your projects.
+
+The key in the map is the name of the EFS for the configuration and default
+mount point (although you can override this). Each value of the map is an
+object with these keys:
+
+| Name          | Required | Description |
+| ------------- | -------- | ----------- |
+| filesystem_id | Yes      | The EFS ID for the filesystem to mount. |
+| mount_point   | No       | Where to mount the filesystem. Default: `/mnt/$name`. |
+| options       | No       | Options to pass to the mount command. Default: `tls,noresvport`. |
 
 ## Deployment
 

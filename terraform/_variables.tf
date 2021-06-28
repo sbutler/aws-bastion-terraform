@@ -115,3 +115,23 @@ variable "extra_enis" {
         error_message = "You must specify a prefix list name or ID for each ENI."
     }
 }
+
+variable "extra_efs" {
+    type        = map(object({
+        filesystem_id = string
+        mount_target  = optional(string)
+        options       = optional(string)
+    }))
+    description = "Map of extra EFS's to mount on the bastion host. The key is used as the name for the default mount point (/mnt/$name), and must not start with 'bastion-'."
+    default     = {}
+
+    validation {
+        condition     = alltrue([ for k in keys(var.extra_efs) : substr(k, 0, 8) != "bastion-" ])
+        error_message = "EFS names must not start with 'bastion-'."
+    }
+
+    validation {
+        condition     = alltrue([ for k in keys(var.extra_efs) : can(regex("^[a-zA-Z0-9_-]+$", k)) ])
+        error_message = "EFS names must be only letters, numbers, underscores, and dashes."
+    }
+}

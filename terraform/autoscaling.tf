@@ -50,6 +50,7 @@ data "cloudinit_config" "bastion_userdata" {
 
                 sharedfs_id           = aws_efs_file_system.sharedfs.id
                 sharedfs_home_uofi_id = aws_efs_access_point.sharedfs_home_uofi.id
+                extra_efs             = local.extra_efs
 
                 loggroup_prefix             = local.loggroup_prefix
                 metrics_namespace           = local.metrics_namespace
