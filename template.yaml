@@ -152,6 +152,10 @@ Resources:
                 - codebuild.amazonaws.com
             Action: [ 'sts:AssumeRole' ]
       Path: /
+      ManagedPolicyArns:
+        - !Ref TerraformDeployReadOnlyPolicy
+        - !Ref TerraformDeployReadWritePolicy
+        - !Ref TerraformDeploySecurityPolicy
       Policies:
         - PolicyName: codebuild
           PolicyDocument:
@@ -203,6 +207,7 @@ Resources:
                   - "ssm:PutParameter"
                 Resource:
                   - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ssh/*"
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/outputs/*"
               - Sid: KMSReadWrite
                 Effect: Allow
                 Action:
@@ -212,17 +217,19 @@ Resources:
                   - !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
                 Condition:
                   ArnLike:
-                    "kms:EncryptionContext:PARAMETER_ARN": !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ssh/*"
+                    "kms:EncryptionContext:PARAMETER_ARN":
+                      - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/outputs/*"
+                      - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ssh/*"
       Tags:
         - { Key: Service, Value: !Ref Service }
         - { Key: Contact, Value: !Ref Contact }
         - { Key: Environment, Value: !Ref Environment }
         - { Key: Project, Value: !Ref "AWS::StackName" }
-  TerraformDeployPolicy:
-    Type: AWS::IAM::Policy
+  TerraformDeployReadOnlyPolicy:
+    Type: AWS::IAM::ManagedPolicy
     Properties:
-      Roles: [ !Ref TerraformRole ]
-      PolicyName: deploy
+      ManagedPolicyName: !Sub "${AWS::StackName}-DeployReadOnly-${AWS::Region}"
+      Description: Policy to deploy resources in the terraform.
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -271,7 +278,14 @@ Resources:
               - "events:ListRule*"
               - "events:TestEventPattern"
             Resource: '*'
-
+  TerraformDeployReadWritePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${AWS::StackName}-DeployReadWrite-${AWS::Region}"
+      Description: Policy to deploy resources in the terraform.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
           - Sid: ReadWrite
             Effect: Allow
             Action:
@@ -336,6 +350,109 @@ Resources:
               - "elasticfilesystem:UntagResource"
               - "elasticfilesystem:UpdateFileSystem"
 
+              - "s3:*"
+              - "lambda:*"
+            Resource:
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:elastic-ip/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:launch-template/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/*
+              - !Sub arn:aws:ec2:${AWS::Region}::image/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:key-pair/${SSHKeyName}
+
+              - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}
+              - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}-*
+
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}:*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*:*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*:*
+
+              - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/*
+              - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:access-point/*
+
+              - !Sub arn:aws:s3:::${AWS::StackName}
+              - !Sub arn:aws:s3:::${AWS::StackName}-*
+              - !Sub arn:aws:s3:::${AWS::StackName}/*
+              - !Sub arn:aws:s3:::${AWS::StackName}-*/*
+
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}:*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*:*
+
+            Condition:
+              StringEqualsIfExists:
+                "aws:RequestTag/Project": !Ref "AWS::StackName"
+                "aws:ResourceTag/Project": !Ref "AWS::StackName"
+                "ec2:Owner": amazon
+              ArnLikeIfExists:
+                "ec2:InstanceProfile":
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*"
+
+          - Sid: LambdaEventSourceMappings
+            Effect: Allow
+            Action:
+              - "lambda:CreateEventSourceMapping"
+              - "lambda:DeleteEventSourceMapping"
+              - "lambda:GetEventSourceMapping"
+              - "lambda:UpdateEventSourceMapping"
+            Resource: "*"
+            Condition:
+              ArnLike:
+                "lambda:FunctionArn":
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+
+          - Sid: EventsReadWrite
+            Effect: Allow
+            Action:
+              - "events:DeleteRule"
+              - "events:DisableRule"
+              - "events:EnableRule"
+              - "events:ListTagsForResource"
+              - "events:ListTargetsByRule"
+              - "events:PutRule"
+              - "events:PutTargets"
+              - "events:RemoveTargets"
+              - "events:TagResource"
+              - "events:UntagResource"
+            Resource:
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-*
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}-*
+            Condition:
+              ArnLikeIfExists:
+                "events:TargetArn":
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+  TerraformDeploySecurityPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${AWS::StackName}-DeploySecurity-${AWS::Region}"
+      Description: Policy to deploy resources in the terraform.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ReadWrite
+            Effect: Allow
+            Action:
               - "iam:AddRoleToInstanceProfile"
               - "iam:AttachRolePolicy"
               - "iam:CreateInstanceProfile"
@@ -386,34 +503,7 @@ Resources:
               - "kms:UntagResource"
               - "kms:UpdateAlias"
               - "kms:UpdateKeyDescription"
-
-              - "s3:*"
-              - "lambda:*"
             Resource:
-              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:elastic-ip/*
-              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
-              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:launch-template/*
-              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
-              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
-              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
-              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
-              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/*
-              - !Sub arn:aws:ec2:${AWS::Region}::image/*
-              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:key-pair/${SSHKeyName}
-
-              - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}
-              - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}-*
-
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}:*
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*:*
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*:*
-
-              - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/*
-              - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:access-point/*
-
               - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}
               - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*
               - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}
@@ -427,31 +517,10 @@ Resources:
               - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}/*
               - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}-*
               - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*
-
-              - !Sub arn:aws:s3:::${AWS::StackName}
-              - !Sub arn:aws:s3:::${AWS::StackName}-*
-              - !Sub arn:aws:s3:::${AWS::StackName}/*
-              - !Sub arn:aws:s3:::${AWS::StackName}-*/*
-
-              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
-              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
-              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
-              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
-              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}
-              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*
-              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}:*
-              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*:*
-
             Condition:
               StringEqualsIfExists:
                 "aws:RequestTag/Project": !Ref "AWS::StackName"
                 "aws:ResourceTag/Project": !Ref "AWS::StackName"
-                "ec2:Owner": amazon
-              ArnLikeIfExists:
-                "ec2:InstanceProfile":
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}"
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*"
-
           - Sid: KMSCreate
             Effect: Allow
             Action: "kms:CreateKey"
@@ -467,54 +536,13 @@ Resources:
             Condition:
               Bool:
                 "kms:GrantIsForAWSResource": "true"
-
-          - Sid: LambdaEventSourceMappings
-            Effect: Allow
-            Action:
-              - "lambda:CreateEventSourceMapping"
-              - "lambda:DeleteEventSourceMapping"
-              - "lambda:GetEventSourceMapping"
-              - "lambda:UpdateEventSourceMapping"
-            Resource: "*"
-            Condition:
-              ArnLike:
-                "lambda:FunctionArn":
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
-
-          - Sid: EventsReadWrite
-            Effect: Allow
-            Action:
-              - "events:DeleteRule"
-              - "events:DisableRule"
-              - "events:EnableRule"
-              - "events:ListTagsForResource"
-              - "events:ListTargetsByRule"
-              - "events:PutRule"
-              - "events:PutTargets"
-              - "events:RemoveTargets"
-              - "events:TagResource"
-              - "events:UntagResource"
-            Resource:
-              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}
-              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-*
-              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}
-              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}-*
-            Condition:
-              ArnLikeIfExists:
-                "events:TargetArn":
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
-  TerraformDestroyPolicy:
+  TerraformDestroyManagedPolicy:
     Condition: HasDestroy
-    Type: AWS::IAM::Policy
+    Type: AWS::IAM::ManagedPolicy
     Properties:
+      ManagedPolicyName: !Sub "${AWS::StackName}-Destroy-${AWS::Region}"
+      Description: Policy to destroy protected resources in the terraform.
       Roles: [ !Ref TerraformRole ]
-      PolicyName: destroy
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -539,6 +567,10 @@ Resources:
   ApplyProject:
     Type: AWS::CodeBuild::Project
     Condition: HasApply
+    DependsOn:
+      - TerraformDeployReadOnlyPolicy
+      - TerraformDeployReadWritePolicy
+      - TerraformDeploySecurityPolicy
     Properties:
       Name: !Sub "${AWS::StackName}-APPLY"
       Description: Apply changes to the UIUC Bastion Host terraform.
@@ -625,6 +657,11 @@ Resources:
   DestroyProject:
     Type: AWS::CodeBuild::Project
     Condition: HasDestroy
+    DependsOn:
+      - TerraformDeployReadOnlyPolicy
+      - TerraformDeployReadWritePolicy
+      - TerraformDeploySecurityPolicy
+      - TerraformDestroyManagedPolicy
     Properties:
       Name: !Sub "${AWS::StackName}-DESTROY"
       Description: Removes/Destroys the UIUC Bastion Host terraform.

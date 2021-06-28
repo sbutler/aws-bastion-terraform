@@ -300,3 +300,51 @@ The `$StackName-DESTROY` will delete all the resources and data. Be careful
 running this project as the actions are not reversible. Deleting the
 CloudFormation stack does not delete the terraform managed resources.
 
+## Outputs
+
+The terraform outputs a number of values to help you use the resources it
+creates in other terraform configurations or CloudFormation stacks. The two most
+important ones are documented here:
+
+- `bastion_public_ip` and `/$project/outputs/public-ip`: This is the public IP
+  for instances of the bastion host. You should create an `A Record` for it
+  with the `hostname` in IPAM. During normal operations this value should not
+  change with updates to the terraform.
+- `bastion_security_group` and `/$project/outputs/security-group/`: This is the
+  VPC Security Group for the bastion host. Although the public IP will not
+  change, the private IP inside the VPC will change each time the ASG launches
+  a new host. **Do not reference the private IP(s) in your security groups!**
+  To allow the host to connect to VPC resources you must reference the output
+  security group ID in your other security groups.
+
+### Terraform Outputs
+
+These are available from `terraform output`, a `terraform_remote_state` data
+source, and as the attributes of a module.
+
+- `bastion_autoscaling_group`: map with `arn` and `name` keys.
+- `bastion_instance_profile`: map with `arn`, `name`, and `unique_id` keys.
+- `bastion_public_ip`: string with the public IPv4.
+- `bastion_role`: map with `arn`, `name`, and `unique_id` keys.
+- `bastion_security_group`: map with `arn`, `id`, and `name` keys.
+- `bastion_sharedfs`: map with `arn` and `id` keys.
+
+### SSM Parameter Store Otputs
+
+These are available in SSM Parameter Store, and you can use them in
+CloudFormation stacks with [dynamic references](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/dynamic-references.html).
+
+- `/$project/outputs/autoscaling-group/arn`: String
+- `/$project/outputs/autoscaling-group/name`: String
+- `/$project/outputs/instance-profile/arn`: String
+- `/$project/outputs/instance-profile/name`: String
+- `/$project/outputs/instance-profile/unique-id`: String
+- `/$project/outputs/public-ip`: String
+- `/$project/outputs/role/arn`: String
+- `/$project/outputs/role/name`: String
+- `/$project/outputs/role/unique-id`: String
+- `/$project/outputs/security-group/arn`: String
+- `/$project/outputs/security-group/id`: String
+- `/$project/outputs/security-group/name`: String
+- `/$project/outputs/sharedfs/arn`: String
+- `/$project/outputs/sharedfs/id`: String
