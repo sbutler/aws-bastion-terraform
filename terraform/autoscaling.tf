@@ -208,6 +208,9 @@ resource "aws_autoscaling_group" "bastion" {
     depends_on = [
         time_sleep.bastion_role,
         aws_efs_mount_target.sharedfs,
+        aws_eip.bastion,
+        aws_cloudwatch_event_target.lambda_associateEIP_BastionInitializationStatus,
+        aws_cloudwatch_event_target.lambda_addExtraENIs_BastionInitializationStatus,
     ]
 
     name             = local.asg_name
