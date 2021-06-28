@@ -277,6 +277,10 @@ simplifies using terraform for people who are not used to it.
 1. Create a new CloudFormation Stack with the `template.yaml`.
 1. Choose a stack name. This will be used for the `project` deploy variable
    value.
+1. The `TerraformMode` selects if you will get a CodeBuild project to apply
+   the terraform (create and update), or if you will get a CodeBuild Project
+   to destroy the terraform. The apply mode also limits the terraform role so
+   that critical resources cannot be accidently removed.
 1. The state bucket and object key are where the terraform state will be
    stored, and the dynamodb table name for locking. See the docs on how to
    setup AWS for using terraform. You can use the same bucket and table for
@@ -284,13 +288,15 @@ simplifies using terraform for people who are not used to it.
    key value.
 1. Specify the rest of the stack parameters, which correspond to the deploy
    variables.
-1. Review the stack summary and create it. After it finishes you will have two
-   CodeBuild Projects with the `$StackName-APPLY` and `$StackName-DESTROY`.
+1. Review the stack summary and create it. After it finishes you will have one
+   of two CodeBuild Projects, depending on the `TerraformMode` you chose:
+   `$StackName-APPLY` or `$StackName-DESTROY`.
 
 The `$StackName-APPLY` will run the terraform and create or update the
 deployment. You can run it multiple times and if it has changes then it will
 update.
 
 The `$StackName-DESTROY` will delete all the resources and data. Be careful
-running this project as the actions are not reversible.
+running this project as the actions are not reversible. Deleting the
+CloudFormation stack does not delete the terraform managed resources.
 

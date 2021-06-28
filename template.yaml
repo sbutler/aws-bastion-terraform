@@ -12,6 +12,12 @@ Parameters:
     Description: The name of the branch to build.
     Default: main
     MinLength: 3
+  TerraformMode:
+    Type: String
+    Description: Mode of operation for the terraform commands.
+    AllowedValues:
+      - Apply (Create/Update)
+      - Destroy
   StateBucketName:
     Type: String
     Description: Name of the S3 bucket to store terraform state.
@@ -105,6 +111,7 @@ Metadata:
           - SourceBranch
       - Label: Terraform
         Parameters:
+          - TerraformMode
           - StateBucketName
           - StateObjectKey
           - StateLockTableName
@@ -126,6 +133,10 @@ Metadata:
           - PublicSubnets
           - InternalSubnets
           - ExtraENIs
+
+Conditions:
+  HasDestroy: !Equals [ !Ref TerraformMode, "Destroy" ]
+  HasApply: !Not [ !Equals [ !Ref TerraformMode, "Destroy" ] ]
 
 Resources:
   TerraformRole:
@@ -202,296 +213,323 @@ Resources:
                 Condition:
                   ArnLike:
                     "kms:EncryptionContext:PARAMETER_ARN": !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ssh/*"
-        - PolicyName: deploy
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Sid: ReadOnly
-                Effect: Allow
-                Action:
-                  - "ec2:DescribeAddresses*"
-                  - "ec2:DescribeImages"
-                  - "ec2:DescribeLaunchTemplate*"
-                  - "ec2:DescribeManagedPrefixLists"
-                  - "ec2:DescribeNetworkInterfaces"
-                  - "ec2:DescribePrefixLists"
-                  - "ec2:DescribeSecurityGroup*"
-                  - "ec2:DescribeStaleSecurityGroups"
-                  - "ec2:DescribeSubnets"
-                  - "ec2:DescribeVpcEndpoint*"
-                  - "ec2:GetManagedPrefixList*"
-
-                  - "autoscaling:Describe*"
-
-                  - "logs:DescribeLogGroups"
-                  - "logs:DescribeResourcePolicies"
-                  - "logs:TestMetricFilter"
-
-                  - "elasticfilesystem:DescribeAccountPreferences"
-                  - "elasticfilesystem:DescribeFileSystems"
-
-                  - "iam:ListInstanceProfiles"
-                  - "iam:ListPolicies"
-                  - "iam:ListRoles"
-
-                  - "kms:ListAliases"
-                  - "kms:ListKeys"
-
-                  - "s3:GetAccountPublicAccessBlock"
-                  - "s3:ListAllMyBuckets"
-
-                  - "lambda:GetAccountSettings"
-                  - "lambda:ListCodeSigningConfigs"
-                  - "lambda:ListEventSourceMappings"
-                  - "lambda:ListFunctions*"
-                  - "lambda:ListLayer*"
-
-                  - "events:DescribeRule"
-                  - "events:ListEventBuses"
-                  - "events:ListRule*"
-                  - "events:TestEventPattern"
-                Resource: '*'
-
-              - Sid: ReadWrite
-                Effect: Allow
-                Action:
-                  - "ec2:AllocateAddress"
-                  - "ec2:DisassociateAddress"
-                  - "ec2:ModifyAddressAttribute"
-                  - "ec2:ReleaseAddress"
-                  - "ec2:ResetAddressAttribute"
-
-                  - "ec2:CreateLaunchTemplate*"
-                  - "ec2:DeleteLaunchTemplate*"
-                  - "ec2:ModifyLaunchTemplate"
-
-                  - "ec2:AuthorizeSecurityGroup*"
-                  - "ec2:CreateSecurityGroup"
-                  - "ec2:DeleteSecurityGroup"
-                  - "ec2:RevokeSecurityGroup*"
-                  - "ec2:UpdateSecurityGroupRuleDescriptions*"
-
-                  - "ec2:CreateTags"
-                  - "ec2:DeleteTags"
-
-                  - "ec2:RunInstances"
-                  - "autoscaling:*"
-
-                  - "logs:AssociateKmsKey"
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                  - "logs:DeleteLogGroup"
-                  - "logs:DeleteLogStream"
-                  - "logs:DeleteMetricFilter"
-                  - "logs:DeleteRetentionPolicy"
-                  - "logs:DeleteSubscriptionFilter"
-                  - "logs:DescribeLogStreams"
-                  - "logs:DescribeMetricFilters"
-                  - "logs:DescribeSubscriptionFilters"
-                  - "logs:DisassociateKmsKey"
-                  - "logs:ListTagsLogGroup"
-                  - "logs:PutMetricFilter"
-                  - "logs:PutRetentionPolicy"
-                  - "logs:PutSubscriptionFilter"
-                  - "logs:TagLogGroup"
-                  - "logs:UntagLogGroup"
-
-                  - "elasticfilesystem:Create*"
-                  - "elasticfilesystem:Delete*"
-                  - "elasticfilesystem:DescribeAccessPoints"
-                  - "elasticfilesystem:DescribeBackupPolicy"
-                  - "elasticfilesystem:DescribeFileSystemPolicy"
-                  - "elasticfilesystem:DescribeLifecycleConfiguration"
-                  - "elasticfilesystem:DescribeMountTargetSecurityGroups"
-                  - "elasticfilesystem:DescribeMountTargets"
-                  - "elasticfilesystem:DescribeTags"
-                  - "elasticfilesystem:ListTagsForResource"
-                  - "elasticfilesystem:ModifyMountTargetSecurityGroups"
-                  - "elasticfilesystem:PutBackupPolicy"
-                  - "elasticfilesystem:PutFileSystemPolicy"
-                  - "elasticfilesystem:PutLifecycleConfiguration"
-                  - "elasticfilesystem:TagResource"
-                  - "elasticfilesystem:UntagResource"
-                  - "elasticfilesystem:UpdateFileSystem"
-
-                  - "iam:AddRoleToInstanceProfile"
-                  - "iam:AttachRolePolicy"
-                  - "iam:CreateInstanceProfile"
-                  - "iam:CreatePolicy*"
-                  - "iam:CreateRole"
-                  - "iam:DeleteInstanceProfile"
-                  - "iam:DeletePolicy*"
-                  - "iam:DeleteRole*"
-                  - "iam:DetachRolePolicy"
-                  - "iam:GetInstanceProfile"
-                  - "iam:GetPolicy*"
-                  - "iam:GetRole*"
-                  - "iam:ListAttachedRolePolicies"
-                  - "iam:ListEntitiesForPolicy"
-                  - "iam:ListInstanceProfileTags"
-                  - "iam:ListInstanceProfilesForRole"
-                  - "iam:ListPolicy*"
-                  - "iam:ListRolePolicies"
-                  - "iam:ListRoleTags"
-                  - "iam:PassRole"
-                  - "iam:PutRole*"
-                  - "iam:RemoveRoleFromInstanceProfile"
-                  - "iam:SetDefaultPolicyVersion"
-                  - "iam:TagInstanceProfile"
-                  - "iam:TagPolicy"
-                  - "iam:TagRole"
-                  - "iam:UntagInstanceProfile"
-                  - "iam:UntagPolicy"
-                  - "iam:UntagRole"
-                  - "iam:UpdateAssumeRolePolicy"
-                  - "iam:UpdateRole*"
-
-                  - "kms:CreateAlias"
-                  - "kms:DeleteAlias"
-                  - "kms:DescribeKey"
-                  - "kms:DisableKey"
-                  - "kms:DisableKeyRotation"
-                  - "kms:EnableKey"
-                  - "kms:EnableKeyRotation"
-                  - "kms:GetKey*"
-                  - "kms:ListGrants"
-                  - "kms:ListKeyPolicies"
-                  - "kms:ListResourceTags"
-                  - "kms:ListRetirableGrants"
-                  - "kms:PutKeyPolicy"
-                  - "kms:ScheduleKeyDeletion"
-                  - "kms:TagResource"
-                  - "kms:UntagResource"
-                  - "kms:UpdateAlias"
-                  - "kms:UpdateKeyDescription"
-
-                  - "s3:*"
-                  - "lambda:*"
-                Resource:
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:elastic-ip/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:launch-template/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/*
-                  - !Sub arn:aws:ec2:${AWS::Region}::image/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:key-pair/${SSHKeyName}
-
-                  - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}
-                  - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}-*
-
-                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}
-                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}:*
-                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*
-                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*:*
-                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*
-                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*:*
-
-                  - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/*
-                  - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:access-point/*
-
-                  - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}
-                  - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*
-                  - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}
-                  - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}-*
-                  - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}/*
-                  - !Sub arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}
-                  - !Sub arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}-*
-                  - !Sub arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}/*
-
-                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}
-                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}/*
-                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}-*
-                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*
-
-                  - !Sub arn:aws:s3:::${AWS::StackName}
-                  - !Sub arn:aws:s3:::${AWS::StackName}-*
-                  - !Sub arn:aws:s3:::${AWS::StackName}/*
-                  - !Sub arn:aws:s3:::${AWS::StackName}-*/*
-
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}:*
-                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*:*
-
-                Condition:
-                  StringEqualsIfExists:
-                    "aws:RequestTag/Project": !Ref "AWS::StackName"
-                    "aws:ResourceTag/Project": !Ref "AWS::StackName"
-                    "ec2:Owner": amazon
-                  ArnLikeIfExists:
-                    "ec2:InstanceProfile":
-                      - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}"
-                      - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*"
-
-              - Sid: KMSCreate
-                Effect: Allow
-                Action: "kms:CreateKey"
-                Resource: "*"
-              - Sid: KMSGrants
-                Effect: Allow
-                Action:
-                  - "kms:CreateGrant"
-                  - "kms:RetireGrant"
-                  - "kms:RevokeGrant"
-                Resource:
-                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*
-                Condition:
-                  Bool:
-                    "kms:GrantIsForAWSResource": "true"
-
-              - Sid: LambdaEventSourceMappings
-                Effect: Allow
-                Action:
-                  - "lambda:CreateEventSourceMapping"
-                  - "lambda:DeleteEventSourceMapping"
-                  - "lambda:GetEventSourceMapping"
-                  - "lambda:UpdateEventSourceMapping"
-                Resource: "*"
-                Condition:
-                  ArnLike:
-                    "lambda:FunctionArn":
-                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
-                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
-                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
-                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
-
-              - Sid: EventsReadWrite
-                Effect: Allow
-                Action:
-                  - "events:DeleteRule"
-                  - "events:DisableRule"
-                  - "events:EnableRule"
-                  - "events:ListTagsForResource"
-                  - "events:ListTargetsByRule"
-                  - "events:PutRule"
-                  - "events:PutTargets"
-                  - "events:RemoveTargets"
-                  - "events:TagResource"
-                  - "events:UntagResource"
-                Resource:
-                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}
-                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-*
-                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}
-                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}-*
-                Condition:
-                  ArnLikeIfExists:
-                    "events:TargetArn":
-                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
-                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
-                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
-                      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
       Tags:
         - { Key: Service, Value: !Ref Service }
         - { Key: Contact, Value: !Ref Contact }
         - { Key: Environment, Value: !Ref Environment }
         - { Key: Project, Value: !Ref "AWS::StackName" }
+  TerraformDeployPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles: [ !Ref TerraformRole ]
+      PolicyName: deploy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ReadOnly
+            Effect: Allow
+            Action:
+              - "ec2:DescribeAddresses*"
+              - "ec2:DescribeImages"
+              - "ec2:DescribeLaunchTemplate*"
+              - "ec2:DescribeManagedPrefixLists"
+              - "ec2:DescribeNetworkInterfaces"
+              - "ec2:DescribePrefixLists"
+              - "ec2:DescribeSecurityGroup*"
+              - "ec2:DescribeStaleSecurityGroups"
+              - "ec2:DescribeSubnets"
+              - "ec2:DescribeVpcEndpoint*"
+              - "ec2:GetManagedPrefixList*"
+
+              - "autoscaling:Describe*"
+
+              - "logs:DescribeLogGroups"
+              - "logs:DescribeResourcePolicies"
+              - "logs:TestMetricFilter"
+
+              - "elasticfilesystem:DescribeAccountPreferences"
+              - "elasticfilesystem:DescribeFileSystems"
+
+              - "iam:ListInstanceProfiles"
+              - "iam:ListPolicies"
+              - "iam:ListRoles"
+
+              - "kms:ListAliases"
+              - "kms:ListKeys"
+
+              - "s3:GetAccountPublicAccessBlock"
+              - "s3:ListAllMyBuckets"
+
+              - "lambda:GetAccountSettings"
+              - "lambda:ListCodeSigningConfigs"
+              - "lambda:ListEventSourceMappings"
+              - "lambda:ListFunctions*"
+              - "lambda:ListLayer*"
+
+              - "events:DescribeRule"
+              - "events:ListEventBuses"
+              - "events:ListRule*"
+              - "events:TestEventPattern"
+            Resource: '*'
+
+          - Sid: ReadWrite
+            Effect: Allow
+            Action:
+              - "ec2:AllocateAddress"
+              - "ec2:DisassociateAddress"
+              - "ec2:ModifyAddressAttribute"
+              - "ec2:ResetAddressAttribute"
+
+              - "ec2:CreateLaunchTemplate*"
+              - "ec2:DeleteLaunchTemplate*"
+              - "ec2:ModifyLaunchTemplate"
+
+              - "ec2:AuthorizeSecurityGroup*"
+              - "ec2:CreateSecurityGroup"
+              - "ec2:DeleteSecurityGroup"
+              - "ec2:RevokeSecurityGroup*"
+              - "ec2:UpdateSecurityGroupRuleDescriptions*"
+
+              - "ec2:CreateTags"
+              - "ec2:DeleteTags"
+
+              - "ec2:RunInstances"
+              - "autoscaling:*"
+
+              - "logs:AssociateKmsKey"
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:DeleteLogGroup"
+              - "logs:DeleteLogStream"
+              - "logs:DeleteMetricFilter"
+              - "logs:DeleteRetentionPolicy"
+              - "logs:DeleteSubscriptionFilter"
+              - "logs:DescribeLogStreams"
+              - "logs:DescribeMetricFilters"
+              - "logs:DescribeSubscriptionFilters"
+              - "logs:DisassociateKmsKey"
+              - "logs:ListTagsLogGroup"
+              - "logs:PutMetricFilter"
+              - "logs:PutRetentionPolicy"
+              - "logs:PutSubscriptionFilter"
+              - "logs:TagLogGroup"
+              - "logs:UntagLogGroup"
+
+              - "elasticfilesystem:Create*"
+              - "elasticfilesystem:DeleteAccessPoint"
+              - "elasticfilesystem:DeleteFileSystemPolicy"
+              - "elasticfilesystem:DeleteMountTarget"
+              - "elasticfilesystem:DeleteTags"
+              - "elasticfilesystem:DescribeAccessPoints"
+              - "elasticfilesystem:DescribeBackupPolicy"
+              - "elasticfilesystem:DescribeFileSystemPolicy"
+              - "elasticfilesystem:DescribeLifecycleConfiguration"
+              - "elasticfilesystem:DescribeMountTargetSecurityGroups"
+              - "elasticfilesystem:DescribeMountTargets"
+              - "elasticfilesystem:DescribeTags"
+              - "elasticfilesystem:ListTagsForResource"
+              - "elasticfilesystem:ModifyMountTargetSecurityGroups"
+              - "elasticfilesystem:PutBackupPolicy"
+              - "elasticfilesystem:PutFileSystemPolicy"
+              - "elasticfilesystem:PutLifecycleConfiguration"
+              - "elasticfilesystem:TagResource"
+              - "elasticfilesystem:UntagResource"
+              - "elasticfilesystem:UpdateFileSystem"
+
+              - "iam:AddRoleToInstanceProfile"
+              - "iam:AttachRolePolicy"
+              - "iam:CreateInstanceProfile"
+              - "iam:CreatePolicy*"
+              - "iam:CreateRole"
+              - "iam:DeleteInstanceProfile"
+              - "iam:DeletePolicy*"
+              - "iam:DeleteRole*"
+              - "iam:DetachRolePolicy"
+              - "iam:GetInstanceProfile"
+              - "iam:GetPolicy*"
+              - "iam:GetRole*"
+              - "iam:ListAttachedRolePolicies"
+              - "iam:ListEntitiesForPolicy"
+              - "iam:ListInstanceProfileTags"
+              - "iam:ListInstanceProfilesForRole"
+              - "iam:ListPolicy*"
+              - "iam:ListRolePolicies"
+              - "iam:ListRoleTags"
+              - "iam:PassRole"
+              - "iam:PutRole*"
+              - "iam:RemoveRoleFromInstanceProfile"
+              - "iam:SetDefaultPolicyVersion"
+              - "iam:TagInstanceProfile"
+              - "iam:TagPolicy"
+              - "iam:TagRole"
+              - "iam:UntagInstanceProfile"
+              - "iam:UntagPolicy"
+              - "iam:UntagRole"
+              - "iam:UpdateAssumeRolePolicy"
+              - "iam:UpdateRole*"
+
+              - "kms:CreateAlias"
+              - "kms:DeleteAlias"
+              - "kms:DescribeKey"
+              - "kms:DisableKey"
+              - "kms:DisableKeyRotation"
+              - "kms:EnableKey"
+              - "kms:EnableKeyRotation"
+              - "kms:GetKey*"
+              - "kms:ListGrants"
+              - "kms:ListKeyPolicies"
+              - "kms:ListResourceTags"
+              - "kms:ListRetirableGrants"
+              - "kms:PutKeyPolicy"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:TagResource"
+              - "kms:UntagResource"
+              - "kms:UpdateAlias"
+              - "kms:UpdateKeyDescription"
+
+              - "s3:*"
+              - "lambda:*"
+            Resource:
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:elastic-ip/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:launch-template/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/*
+              - !Sub arn:aws:ec2:${AWS::Region}::image/*
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:key-pair/${SSHKeyName}
+
+              - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}
+              - !Sub arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AWS::StackName}-*
+
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}:*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*:*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/${AWS::StackName}/*:*
+
+              - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/*
+              - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:access-point/*
+
+              - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}
+              - !Sub arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}-*
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/${AWS::StackName}/*
+              - !Sub arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}
+              - !Sub arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}-*
+              - !Sub arn:aws:iam::${AWS::AccountId}:policy/${AWS::StackName}/*
+
+              - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}
+              - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}/*
+              - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/${AWS::StackName}-*
+              - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*
+
+              - !Sub arn:aws:s3:::${AWS::StackName}
+              - !Sub arn:aws:s3:::${AWS::StackName}-*
+              - !Sub arn:aws:s3:::${AWS::StackName}/*
+              - !Sub arn:aws:s3:::${AWS::StackName}-*/*
+
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}:*
+              - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*:*
+
+            Condition:
+              StringEqualsIfExists:
+                "aws:RequestTag/Project": !Ref "AWS::StackName"
+                "aws:ResourceTag/Project": !Ref "AWS::StackName"
+                "ec2:Owner": amazon
+              ArnLikeIfExists:
+                "ec2:InstanceProfile":
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*"
+
+          - Sid: KMSCreate
+            Effect: Allow
+            Action: "kms:CreateKey"
+            Resource: "*"
+          - Sid: KMSGrants
+            Effect: Allow
+            Action:
+              - "kms:CreateGrant"
+              - "kms:RetireGrant"
+              - "kms:RevokeGrant"
+            Resource:
+              - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*
+            Condition:
+              Bool:
+                "kms:GrantIsForAWSResource": "true"
+
+          - Sid: LambdaEventSourceMappings
+            Effect: Allow
+            Action:
+              - "lambda:CreateEventSourceMapping"
+              - "lambda:DeleteEventSourceMapping"
+              - "lambda:GetEventSourceMapping"
+              - "lambda:UpdateEventSourceMapping"
+            Resource: "*"
+            Condition:
+              ArnLike:
+                "lambda:FunctionArn":
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+
+          - Sid: EventsReadWrite
+            Effect: Allow
+            Action:
+              - "events:DeleteRule"
+              - "events:DisableRule"
+              - "events:EnableRule"
+              - "events:ListTagsForResource"
+              - "events:ListTargetsByRule"
+              - "events:PutRule"
+              - "events:PutTargets"
+              - "events:RemoveTargets"
+              - "events:TagResource"
+              - "events:UntagResource"
+            Resource:
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-*
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/default/${AWS::StackName}-*
+            Condition:
+              ArnLikeIfExists:
+                "events:TargetArn":
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+  TerraformDestroyPolicy:
+    Condition: HasDestroy
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles: [ !Ref TerraformRole ]
+      PolicyName: destroy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Delete
+            Effect: Allow
+            Action:
+              - "ec2:ReleaseAddress"
+              - "elasticfilesystem:DeleteFileSystem"
+            Resource:
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:elastic-ip/*
+              - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/*
+            Condition:
+              StringEqualsIfExists:
+                "aws:RequestTag/Project": !Ref "AWS::StackName"
+                "aws:ResourceTag/Project": !Ref "AWS::StackName"
 
   ApplyProjectLogs:
     Type: AWS::Logs::LogGroup
@@ -500,6 +538,7 @@ Resources:
       RetentionInDays: 7
   ApplyProject:
     Type: AWS::CodeBuild::Project
+    Condition: HasApply
     Properties:
       Name: !Sub "${AWS::StackName}-APPLY"
       Description: Apply changes to the UIUC Bastion Host terraform.
@@ -585,6 +624,7 @@ Resources:
       RetentionInDays: 7
   DestroyProject:
     Type: AWS::CodeBuild::Project
+    Condition: HasDestroy
     Properties:
       Name: !Sub "${AWS::StackName}-DESTROY"
       Description: Removes/Destroys the UIUC Bastion Host terraform.
