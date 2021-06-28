@@ -280,7 +280,8 @@ simplifies using terraform for people who are not used to it.
 1. The `TerraformMode` selects if you will get a CodeBuild project to apply
    the terraform (create and update), or if you will get a CodeBuild Project
    to destroy the terraform. The apply mode also limits the terraform role so
-   that critical resources cannot be accidently removed.
+   that critical resources cannot be accidently removed. You can choose the
+   "All" mode to get both CodeBuild Projects.
 1. The state bucket and object key are where the terraform state will be
    stored, and the dynamodb table name for locking. See the docs on how to
    setup AWS for using terraform. You can use the same bucket and table for

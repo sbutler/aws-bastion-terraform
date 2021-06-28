@@ -18,6 +18,7 @@ Parameters:
     AllowedValues:
       - Apply (Create/Update)
       - Destroy
+      - All
   StateBucketName:
     Type: String
     Description: Name of the S3 bucket to store terraform state.
@@ -135,8 +136,12 @@ Metadata:
           - ExtraENIs
 
 Conditions:
-  HasDestroy: !Equals [ !Ref TerraformMode, "Destroy" ]
-  HasApply: !Not [ !Equals [ !Ref TerraformMode, "Destroy" ] ]
+  HasDestroy: !Or
+    - !Equals [ !Ref TerraformMode, "Destroy" ]
+    - !Equals [ !Ref TerraformMode, "All" ]
+  HasApply: !Or
+    - !Equals [ !Ref TerraformMode, "Apply (Create/Update)" ]
+    - !Equals [ !Ref TerraformMode, "All" ]
 
 Resources:
   TerraformRole:
