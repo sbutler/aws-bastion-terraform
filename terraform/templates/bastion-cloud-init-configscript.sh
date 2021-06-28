@@ -14,7 +14,7 @@ EOF
 chmod 0644 "$file"
 chown root:root "$file"
 
-file=/etc/opt/illinois/cloud-init/efs/home_uofi
+file=/etc/opt/illinois/cloud-init/efs/bastion-home-uofi
 mkdir -p "$(dirname "$file")"
 cat << "EOF" > "$file"
 efs_filesystem_id=${sharedfs_id}
