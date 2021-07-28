@@ -49,8 +49,9 @@ if [[ -z $duo_ikey || -z $duo_skey || -z $duo_host ]]; then
     exit 0
 fi
 
-_builddir="$(mktemp -d duo-build-XXXXXXXX.d)"; tmpfiles+=("$_builddir")
-cd "$_builddir"
+duo_builddir="$(mktemp -d duo-build-XXXXXXXX.d)"; tmpfiles+=("$duo_builddir")
+chmod a+rx "$duo_builddir"
+cd "$duo_builddir"
 
 illinois_log "downloading source code"
 curl --silent --fail https://dl.duosecurity.com/duo_unix-latest.tar.gz > duo_unix.tar.gz
