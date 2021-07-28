@@ -77,9 +77,9 @@ ikey=${duo_ikey}
 skey=${duo_skey}
 ; Duo API host
 host=${duo_host}
-; `failmode = safe` In the event of errors with this configuration file or connection to the Duo service
+; 'failmode = safe' In the event of errors with this configuration file or connection to the Duo service
 ; this mode will allow login without 2FA.
-; `failmode = secure` This mode will deny access in the above cases. Misconfigurations with this setting
+; 'failmode = secure' This mode will deny access in the above cases. Misconfigurations with this setting
 ; enabled may result in you being locked out of your system.
 failmode=safe
 ; Send command for Duo Push authentication
