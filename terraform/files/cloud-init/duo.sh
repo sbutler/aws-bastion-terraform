@@ -134,22 +134,24 @@ if [[ $cfg_modified = "yes" ]]; then
     systemctl restart sshd
 fi
 
-pam_cfg_file=/etc/pam.d/system-auth
-if ! egrep -q 'auth.+pam_duo.so' $pam_cfg_file; then
-    if [[ -h $pam_cfg_file ]]; then
-        if [[ ! -e "${pam_cfg_file}-illinois" ]]; then
-            illinois_log "creating ${pam_cfg_file}-illinois"
-            cp "$pam_cfg_file" "${pam_cfg_file}-illinois"
+for file in password-auth system-auth; do
+    pam_cfg_file=/etc/pam.d/$file
+    if ! egrep -q 'auth.+pam_duo.so' $pam_cfg_file; then
+        if [[ -h $pam_cfg_file ]]; then
+            if [[ ! -e "${pam_cfg_file}-illinois" ]]; then
+                illinois_log "creating ${pam_cfg_file}-illinois"
+                cp "$pam_cfg_file" "${pam_cfg_file}-illinois"
 
-            rm "$pam_cfg_file"
-            ln -s "$(basename "${pam_cfg_file}")-illinois" "$pam_cfg_file"
+                rm "$pam_cfg_file"
+                ln -s "$(basename "${pam_cfg_file}")-illinois" "$pam_cfg_file"
+            fi
+            pam_cfg_file="${pam_cfg_file}-illinois"
         fi
-        pam_cfg_file="${pam_cfg_file}-illinois"
-    fi
 
-    illinois_log "adding pam_duo after pam_sss"
-    sed -i -re 's/^(auth\s+)(\S+)\s+(pam_sss\.so.*)$/#\0\n\1requisite \3\n\1\2 pam_duo.so/' "$pam_cfg_file"
-fi
+        illinois_log "adding pam_duo after pam_sss"
+        sed -i -re 's/^(auth\s+)(\S+)\s+(pam_sss\.so.*)$/#\0\n\1requisite \3\n\1\2 pam_duo.so/' "$pam_cfg_file"
+    fi
+done
 
 illinois_init_status finished
 date > /var/lib/illinois-duo-init
