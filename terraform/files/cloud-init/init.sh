@@ -35,7 +35,7 @@ illinois_finish () {
     fi
 
     for f in "${tmpfiles[@]}"; do
-        rm -fr "$f"
+        rm -fr -- "$f"
     done
 }
 trap illinois_finish EXIT
