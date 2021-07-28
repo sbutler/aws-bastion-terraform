@@ -25,16 +25,7 @@ data "aws_ami" "amazon_linux2" {
 
 data "cloudinit_config" "bastion_userdata" {
     depends_on = [
-        aws_s3_bucket_object.assets_cloudinit_ec2logsyml,
-        aws_s3_bucket_object.assets_cloudinit_efssh,
-        aws_s3_bucket_object.assets_cloudinit_extraenissh,
-        aws_s3_bucket_object.assets_cloudinit_falconsensorsh,
-        aws_s3_bucket_object.assets_cloudinit_initsh,
-        aws_s3_bucket_object.assets_cloudinit_ossecsh,
-        aws_s3_bucket_object.assets_cloudinit_s3downloadsh,
-        aws_s3_bucket_object.assets_cloudinit_sshsh,
-        aws_s3_bucket_object.assets_cloudinit_ssssh,
-        aws_s3_bucket_object.assets_cloudinit_yumcronyml,
+        aws_s3_bucket_object.assets_cloudinit,
     ]
 
     part {
@@ -63,6 +54,10 @@ data "cloudinit_config" "bastion_userdata" {
 
                 ssh_hostkeys_path = "/${local.ssh_parameter_prefix}"
 
+                duo_ikey_parameter = "/${local.duo_parameter_prefix}integration-key"
+                duo_skey_parameter = "/${local.duo_parameter_prefix}secret-key"
+                duo_host_parameter = "/${local.duo_parameter_prefix}hostname"
+
                 extra_enis_prefix_list_ids = join(" ", formatlist(
                     "[eth%d]='%s'",
                     [ for i in range(length(local.extra_enis)) : i + 1 ],
@@ -88,6 +83,7 @@ https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ec2logs.y
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/yumcron.yml
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ssh.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/sss.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/duo.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/falcon-sensor.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ossec.sh
 EOF

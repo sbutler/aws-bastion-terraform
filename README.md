@@ -72,6 +72,14 @@ newly launched one will have the updated parameters.
 The SSM Parameter Store paths all begin with `/$project/`, where the project
 value is what you use for the `project` deploy variable.
 
+### /$project/duo/integration-key (String); /$project/duo/secret-key (SecureString); /$project/duo/hostname (String)
+
+If these parameters are specified then Duo will be installed and configured for
+AD users who login with a password. Locally created users will not get a Duo
+push. Duo is configured to automatically use the push method.
+
+If you do not specify all of these parameters then Duo is not installed.
+
 ### /$project/falcon-sensor/CID (SecureString)
 
 If you would like to run CrowdStrike Falcon Sensor on the hosts then you will

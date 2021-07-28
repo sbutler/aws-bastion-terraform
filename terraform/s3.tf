@@ -50,6 +50,25 @@ data "aws_iam_policy_document" "assets" {
 }
 
 # =========================================================
+# Locals
+# =========================================================
+
+locals {
+    assets_cloudinit = {
+        "duo.sh"           = { content_type = "text/x-sh" }
+        "ec2logs.yml"      = { content_type = "text/yaml" }
+        "efs.sh"           = { content_type = "text/x-sh" }
+        "extra-enis.sh"    = { content_type = "text/x-sh" }
+        "falcon-sensor.sh" = { content_type = "text/x-sh" }
+        "init.sh"          = { content_type = "text/x-sh" }
+        "ossec.sh"         = { content_type = "text/x-sh" }
+        "s3-download.sh"   = { content_type = "text/x-sh" }
+        "ssh.sh"           = { content_type = "text/x-sh" }
+        "sss.sh"           = { content_type = "text/x-sh" }
+        "yumcron.yml"      = { content_type = "text/yaml" }
+    }
+}
+# =========================================================
 # Resources: Bucket
 # =========================================================
 
@@ -88,102 +107,14 @@ resource "aws_s3_bucket_policy" "assets" {
 # Resources: cloud-init
 # =========================================================
 
-resource "aws_s3_bucket_object" "assets_cloudinit_ec2logsyml" {
+resource "aws_s3_bucket_object" "assets_cloudinit" {
+    for_each = local.assets_cloudinit
+
     bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/ec2logs.yml"
+    key    = "cloud-init/${each.key}"
 
-    source       = "${path.module}/files/cloud-init/ec2logs.yml"
+    source       = "${path.module}/files/cloud-init/${each.key}"
     acl          = "bucket-owner-full-control"
-    content_type = "text/yaml"
-    etag         = filemd5("${path.module}/files/cloud-init/ec2logs.yml")
-}
-
-resource "aws_s3_bucket_object" "assets_cloudinit_efssh" {
-    bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/efs.sh"
-
-    source       = "${path.module}/files/cloud-init/efs.sh"
-    acl          = "bucket-owner-full-control"
-    content_type = "text/x-sh"
-    etag         = filemd5("${path.module}/files/cloud-init/efs.sh")
-}
-
-resource "aws_s3_bucket_object" "assets_cloudinit_extraenissh" {
-    bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/extra-enis.sh"
-
-    source       = "${path.module}/files/cloud-init/extra-enis.sh"
-    acl          = "bucket-owner-full-control"
-    content_type = "text/x-sh"
-    etag         = filemd5("${path.module}/files/cloud-init/extra-enis.sh")
-}
-
-resource "aws_s3_bucket_object" "assets_cloudinit_falconsensorsh" {
-    bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/falcon-sensor.sh"
-
-    source       = "${path.module}/files/cloud-init/falcon-sensor.sh"
-    acl          = "bucket-owner-full-control"
-    content_type = "text/x-sh"
-    etag         = filemd5("${path.module}/files/cloud-init/falcon-sensor.sh")
-}
-
-resource "aws_s3_bucket_object" "assets_cloudinit_initsh" {
-    bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/init.sh"
-
-    source       = "${path.module}/files/cloud-init/init.sh"
-    acl          = "bucket-owner-full-control"
-    content_type = "text/x-sh"
-    etag         = filemd5("${path.module}/files/cloud-init/init.sh")
-}
-
-resource "aws_s3_bucket_object" "assets_cloudinit_ossecsh" {
-    bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/ossec.sh"
-
-    source       = "${path.module}/files/cloud-init/ossec.sh"
-    acl          = "bucket-owner-full-control"
-    content_type = "text/x-sh"
-    etag         = filemd5("${path.module}/files/cloud-init/ossec.sh")
-}
-
-resource "aws_s3_bucket_object" "assets_cloudinit_s3downloadsh" {
-    bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/s3-download.sh"
-
-    source       = "${path.module}/files/cloud-init/s3-download.sh"
-    acl          = "bucket-owner-full-control"
-    content_type = "text/x-sh"
-    etag         = filemd5("${path.module}/files/cloud-init/s3-download.sh")
-}
-
-resource "aws_s3_bucket_object" "assets_cloudinit_sshsh" {
-    bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/ssh.sh"
-
-    source       = "${path.module}/files/cloud-init/ssh.sh"
-    acl          = "bucket-owner-full-control"
-    content_type = "text/x-sh"
-    etag         = filemd5("${path.module}/files/cloud-init/ssh.sh")
-}
-
-resource "aws_s3_bucket_object" "assets_cloudinit_ssssh" {
-    bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/sss.sh"
-
-    source       = "${path.module}/files/cloud-init/sss.sh"
-    acl          = "bucket-owner-full-control"
-    content_type = "text/x-sh"
-    etag         = filemd5("${path.module}/files/cloud-init/sss.sh")
-}
-
-resource "aws_s3_bucket_object" "assets_cloudinit_yumcronyml" {
-    bucket = aws_s3_bucket.assets.bucket
-    key    = "cloud-init/yumcron.yml"
-
-    source       = "${path.module}/files/cloud-init/yumcron.yml"
-    acl          = "bucket-owner-full-control"
-    content_type = "text/yaml"
-    etag         = filemd5("${path.module}/files/cloud-init/yumcron.yml")
+    content_type = each.value.content_type
+    etag         = filemd5("${path.module}/files/cloud-init/${each.key}")
 }

@@ -118,8 +118,9 @@ resource "aws_cloudwatch_event_rule" "lambda_associateEIP_BastionInitializationS
     "detail-type": [ "Bastion Initialization Status" ],
     "detail": {
         "autoScalingGroupName": [ "${local.asg_name}" ],
-        "lastStatus": [ "efs", "ssh", "sss" ],
+        "lastStatus": [ "duo", "efs", "ssh", "sss" ],
         "status": {
+            "duo": [ "finished" ],
             "efs": [ "finished" ],
             "ssh": [ "finished" ],
             "sss": [ "finished" ]

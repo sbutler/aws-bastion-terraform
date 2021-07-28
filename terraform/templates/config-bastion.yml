@@ -11,8 +11,10 @@ packages:
     - iptables-services
     - jq
     - openldap-clients
+    - openssl-devel
     - mariadb
     - mariadb-devel
+    - pam-devel
     - pv
     - python
     - python-devel
