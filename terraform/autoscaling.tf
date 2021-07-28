@@ -43,12 +43,14 @@ data "cloudinit_config" "bastion_userdata" {
                 sharedfs_home_uofi_id = aws_efs_access_point.sharedfs_home_uofi.id
                 extra_efs             = local.extra_efs
 
-                sharedfs_mount_targets = local.vpc_id == local.internal_vpc_id ? "" :
-                    join(" ", formatlist(
+                sharedfs_mount_targets = local.vpc_id == local.internal_vpc_id ? "" : join(
+                    " ",
+                    formatlist(
                         "[%s]='%s'",
                         aws_efs_mount_target.sharedfs[*].availability_zone_name,
                         aws_efs_mount_target.sharedfs[*].ip_address,
-                    ))
+                    )
+                )
 
                 loggroup_prefix             = local.loggroup_prefix
                 metrics_namespace           = local.metrics_namespace
