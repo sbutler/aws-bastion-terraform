@@ -16,12 +16,14 @@ EOF
 
 write_file /etc/opt/illinois/cloud-init/efs/bastion-sharedfs << "EOF"
 efs_filesystem_id=${sharedfs_id}
+declare -A efs_mount_targets=( ${sharedfs_mount_targets} )
 EOF
 
 write_file /etc/opt/illinois/cloud-init/efs/bastion-home-uofi << "EOF"
 efs_filesystem_id=${sharedfs_id}
 efs_options=tls,noresvport,accesspoint=${sharedfs_home_uofi_id}
 mount_target=/home/ad.uillinois.edu
+declare -A efs_mount_targets=( ${sharedfs_mount_targets} )
 EOF
 
 %{for efs_name, efs_config in extra_efs }
