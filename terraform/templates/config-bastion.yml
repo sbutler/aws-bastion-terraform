@@ -11,10 +11,8 @@ packages:
     - iptables-services
     - jq
     - openldap-clients
-    - openssl-devel
     - mariadb
     - mariadb-devel
-    - pam-devel
     - pv
     - python
     - python-devel
@@ -25,9 +23,9 @@ packages:
 
 bootcmd:
     - [ cloud-init-per, once, pie-install-epel, amazon-linux-extras, install, epel ]
+    - [ cloud-init-per, once, pie-install-devel, yum, install, "-y", "@development", openssl-devel, pam-devel ]
 runcmd:
     - systemctl restart crond
-    - yum install -y @development
     - systemctl enable iptables
     - systemctl start iptables
     - iptables -t filter -I OUTPUT 1 -p tcp -d 169.254.169.254 -j REJECT --reject-with icmp-admin-prohibited
