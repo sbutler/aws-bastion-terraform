@@ -141,16 +141,16 @@ private key parts (you can ignore the `.pub` files):
 
 | File                   | SSM Parameter |
 | ---------------------- | ------------- |
+| `ssh_host_dsa_key`     | `/bastion/ssh/ssh_host_dsa_key` |
 | `ssh_host_ecdsa_key`   | `/bastion/ssh/ssh_host_ecdsa_key` |
 | `ssh_host_ed25519_key` | `/bastion/ssh/ssh_host_ed25519_key` |
 | `ssh_host_rsa_key`     | `/bastion/ssh/ssh_host_rsa_key` |
 
-**Linux Workstations**: if you have OpenSSH and AWS CLI installed then you can
-use the `codebuild/bin/update-hostkeys.sh <bastion project name> <bastion hostname>`
-script to generate and upload host keys.
-
-**CodeBuild Deployments**: the CodeBuild deployment will generate these keys
-for you. You do not need to create them manually.
+- *Linux Workstations:* if you have OpenSSH and AWS CLI installed then you can
+  use the `codebuild/bin/update-hostkeys.sh <bastion project name> <bastion hostname>`
+  script to generate and upload host keys.
+- *CodeBuild Deployments:* the CodeBuild deployment will generate these keys
+  for you. You do not need to create them manually.
 
 ### SSS
 
@@ -182,14 +182,12 @@ Corrent Format: `Group 1,Group2`. Wrong Format: `Group 1, Group2`.
 These variables are used by the terraform and set when it is deployed. To
 change them you will need to change the terraform and redeploy it.
 
-**Direct Deployment**: create a `terraform.tfvars` file to store these
-variables and values, or create your own tfvar file and specify it with the
-`-var-file` parameter to commands.
-
-**Module Deployment**: specify these variables on your module resource.
-
-**CodeBuild Deployment**: CloudFormation will prompt for values when you create
-or update the stack.
+- *Direct Deployment:* create a `terraform.tfvars` file to store these
+  variables and values, or create your own tfvar file and specify it with the
+  `-var-file` parameter to commands.
+- *Module Deployment:* specify these variables on your module resource.
+- *CodeBuild Deployment:* CloudFormation will prompt for values when you create
+  or update the stack.
 
 ### Tagging
 
@@ -212,7 +210,9 @@ restrictions on the allowed values:
 - Must end with a letter or number.
 - The rest must only be letters, numbers, or a hyphen.
 
-**CodeBuild Deployment**: the stack name is used for the project name.
+Default: `"bastion"`
+
+*CodeBuild Deployment:* the stack name is used for the project name.
 
 ### hostname (string)
 
@@ -245,7 +245,7 @@ Default: `false`.
 
 ### falcon_sensor_package (string)
 
-An S3 URL (s3://bucket/path/to/sensor.rpm) to download the CrowdStrike Falcon
+An S3 URL (`s3://bucket/path/to/sensor.rpm`) to download the CrowdStrike Falcon
 Sensor. This bucket should be private (no public access) and the bastion hosts
 will use their instance roles to download the package.
 
@@ -272,12 +272,13 @@ use campus subnets or even the same public subnets specified above.
 
 ### extra_enis (list of objects)
 
-**This is an advanced networking option.**
+*(This is an advanced networking option)*
 
 You can optionally have additional ENIs attached to the bastion hosts to reach
 resources in other subnets or VPCs, not local to your VPC. For instance, you
 could create a Management VPC for your bastion hosts, and use an additional ENI
-to connect to the application VPC.
+to connect to the application VPC. The number of additional ENIs you can have
+is limited by the `instance_type` you choose.
 
 Each element in the `extra_enis` list is a map of keys:
 
@@ -287,9 +288,11 @@ Each element in the `extra_enis` list is a map of keys:
 | description  | No       | Optional description to set for the ENI when it is created. |
 | prefix_lists | Yes      | List of prefix list names or IDs, used to adjust the routing table to properly route traffic through this ENI. |
 
+Default: `[]`
+
 ### extra_efs (map of objects)
 
-**This is an advanced file system option.**
+*(This is an advanced file system option)*
 
 You can optionally have additional EFS's mounted on the bastion hosts to access
 file systems used by your projects.
@@ -304,9 +307,11 @@ object with these keys:
 | mount_point   | No       | Where to mount the filesystem. Default: `/mnt/$name`. |
 | options       | No       | Options to pass to the mount command. Default: `tls,noresvport`. |
 
+Default: `{}`
+
 ### cloudinit_scripts (list of strings)
 
-**This is an advanced customization option.**
+*(This is an advanced customization option)*
 
 You can run your own shell scripts after the default set of cloud-init scripts
 when instances launch. This supports both boothooks and scripts, although we
@@ -322,11 +327,13 @@ The scripts (file or inline) must begin with either `#!` (recommended)
 or `#cloud-boothook` (dangerous). Please refer to the [cloud-init docs for more
 information on scripts](https://cloudinit.readthedocs.io/en/latest/topics/format.html#user-data-script).
 
-**CodeBuild Deployment**: this parameter is not available.
+Default: `[]`
+
+*CodeBuild Deployment:* this parameter is not available.
 
 ### cloudinit_config (string)
 
-**This is an advanced customization option.**
+*(This is an advanced customization option)*
 
 You can specify your own YAML file with cloud-init configuration commands to
 run when instances launch. This is a good way to install additional packages,
@@ -338,7 +345,9 @@ The script you provide must begin with `#cloud-config`. This terraform will
 automatically add an additional line at the end of your config to make sure it
 merges properly with the default configs.
 
-**CodeBuild Deployment**: this parameter is not available.
+Default: `null`
+
+*CodeBuild Deployment:* this parameter is not available.
 
 ## Deployment
 
@@ -431,7 +440,7 @@ source, and as the attributes of a module.
 - `bastion_security_group`: map with `arn`, `id`, and `name` keys.
 - `bastion_sharedfs`: map with `arn` and `id` keys.
 
-### SSM Parameter Store Otputs
+### SSM Parameter Store Outputs
 
 These are available in SSM Parameter Store, and you can use them in
 CloudFormation stacks with [dynamic references](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/dynamic-references.html).
