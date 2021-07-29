@@ -13,6 +13,7 @@ the UOFI AD for authentication. Features:
 - Advanced Networking: an ElasticIP (EIP) will automatically be assigned to
   newly launched hosts when they are ready, and hosts support additional
   Elastic Network Interfaces (ENI) with custom routes.
+- Duo Push integration for SSH Password authentication.
 
 Bastion hosts are designed to be temporary, and configuration changes or AWS
 cloud events can cause a running one to be terminated and a new one launched.
