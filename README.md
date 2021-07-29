@@ -75,7 +75,13 @@ value is what you use for the `project` deploy variable.
 
 **Some of these parameters are required before deploying the bastion host.**
 
-### /$project/duo/integration-key (String); /$project/duo/secret-key (SecureString); /$project/duo/hostname (String)
+### Duo
+
+* Parameters:
+  - `/$project/duo/integration-key` (String)
+  - `/$project/duo/secret-key` (SecureString)
+  - `/$project/duo/hostname` (String)
+* Required: No
 
 If these parameters are specified then Duo will be installed and configured for
 AD users who login with a password. Locally created users will not get a Duo
@@ -83,25 +89,37 @@ push. Duo is configured to automatically use the push method.
 
 If you do not specify all of these parameters then Duo is not installed.
 
-**Required**: No
+### CrowdStrike Falcon
 
-### /$project/falcon-sensor/CID (SecureString)
+* Parameters:
+  - `/$project/falcon-sensor/CID` (SecureString)
+* Required: No
 
 If you would like to run CrowdStrike Falcon Sensor on the hosts then you will
 need to get the CID and store it in this parameter. CrowdStrike also requires
 setting a value for the `falcon_sensor_package` variable.
 
-**Required**: No
+### OSSEC
 
-### /$project/ossec/whitelists/* (StringList)
+* Parameters:
+  - `/$project/ossec/whitelists/example1` (StringList)
+  - `/$project/ossec/whitelists/example2` (StringList)
+  - `/$project/ossec/whitelists/example2` (StringList)
+  - ...
+* Required: No
 
 You can create one or more whitelists under this SSM Parameter Store path that
 contain a comma separated list of IPs for ossec to ignore. The format of each
 IP is defined by ossec, but generally CIDRs and regexs are allowed.
 
-**Required**: No
+### SSH
 
-### /$project/ssh/* (SecureString)
+* Parameters:
+  - `/$project/ssh/ssh_host_dsa_key` (SecureString)
+  - `/$project/ssh/ssh_host_ecdsa_key` (SecureString)
+  - `/$project/ssh/ssh_host_ed25519_key` (SecureString)
+  - `/$project/ssh/ssh_host_rsa_key` (SecureString)
+* **Required: Yes for terraform deployments.**
 
 You will need to generate a set of SSH Host Keys for the bastion host to use.
 They are stored in SSM Parameter Store so that each newly launched bastion host
@@ -119,8 +137,6 @@ private key parts (you can ignore the `.pub` files):
 | `ssh_host_ed25519_key` | `/bastion/ssh/ssh_host_ed25519_key` |
 | `ssh_host_rsa_key`     | `/bastion/ssh/ssh_host_rsa_key` |
 
-**Required**: Yes for terraform deployments.
-
 **Linux Workstations**: if you have OpenSSH and AWS CLI installed then you can
 use the `codebuild/bin/update-hostkeys.sh <bastion project name> <bastion hostname>`
 script to generate and upload host keys.
@@ -128,18 +144,22 @@ script to generate and upload host keys.
 **CodeBuild Deployments**: the CodeBuild deployment will generate these keys
 for you. You do not need to create them manually.
 
-### /$project/sss/bind-username (String); /$project/sss/bind-password (SecureString)
+### SSS
 
-These two parameters are the AD user with memberOf access that the bastion
-hosts will use to authenticate users.
+* Parameters:
+  - `/$project/sss/bind-username` (String)
+  - `/$project/sss/bind-password` (SecureString)
+  - `/$project/sss/admin-groups` (StringList)
+  - `/$project/sss/allow-groups` (StringList)
+* **Required: Yes for bind and admin-groups**
 
-**Required**: Yes
+The two bind parameters are the AD user with memberOf access that the bastion
+hosts will use to authenticate users. The bastion host will use this to get
+group information about the user and as part of the authentication process.
 
-### /$project/sss/admin-groups; /$project/sss/allow-groups (StringList)
-
-Comma separated list of AD groups that should have admin access or allowed
-shell access. When specifying multiple groups do not include any extra spaces
-before or after the group name.
+The two group parameters are a comma separated list of AD groups that should
+have admin access or allowed shell access. When specifying multiple groups do
+not include any extra spaces before or after the group name.
 
 Corrent Format: `Group 1,Group2`. Wrong Format: `Group 1, Group2`.
 
@@ -148,8 +168,6 @@ Corrent Format: `Group 1,Group2`. Wrong Format: `Group 1, Group2`.
 - `allow-groups`: AD groups allowed to SSH but not use sudo. All AD groups
   listed in `admin-groups` are automatically included in `allow-groups`. This
   parameter is optional.
-
-  **Required**: Yes for `admin-groups`
 
 ## Deploy Variables
 
