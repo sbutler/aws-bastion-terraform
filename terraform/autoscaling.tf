@@ -217,6 +217,7 @@ resource "aws_autoscaling_group" "bastion" {
         aws_eip.bastion,
         aws_cloudwatch_event_target.lambda_associateEIP_BastionInitializationStatus,
         aws_cloudwatch_event_target.lambda_addExtraENIs_BastionInitializationStatus,
+        aws_cloudwatch_log_group.ec2,
     ]
 
     name             = local.asg_name

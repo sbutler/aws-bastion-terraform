@@ -1,58 +1,28 @@
 # =========================================================
+# Locals
+# =========================================================
+
+locals {
+    ec2_log_groups = {
+        "var/log/audit/audit.log" = {}
+        "var/log/boot.log" = {}
+        "var/log/cloud-init.log" = {}
+        "var/log/cron" = {}
+        "var/log/messages" = {}
+        "var/log/secure" = {}
+        "var/ossec/logs/alerts/alerts.json" = {}
+        "var/ossec/logs/ossec.log" = {}
+    }
+}
+
+# =========================================================
 # Resources
 # =========================================================
 
-resource "aws_cloudwatch_log_group" "ec2_auditlog" {
-    name = "/${local.loggroup_prefix}var/log/audit/audit.log"
+resource "aws_cloudwatch_log_group" "ec2" {
+    for_each = local.ec2_log_groups
 
-    retention_in_days = 90
-    kms_key_id        = aws_kms_key.data.arn
-}
-
-resource "aws_cloudwatch_log_group" "ec2_bootlog" {
-    name = "/${local.loggroup_prefix}var/log/boot.log"
-
-    retention_in_days = 90
-    kms_key_id        = aws_kms_key.data.arn
-}
-
-resource "aws_cloudwatch_log_group" "ec2_cloudinitlog" {
-    name = "/${local.loggroup_prefix}var/log/cloud-init.log"
-
-    retention_in_days = 90
-    kms_key_id        = aws_kms_key.data.arn
-}
-
-resource "aws_cloudwatch_log_group" "ec2_cron" {
-    name = "/${local.loggroup_prefix}var/log/cron"
-
-    retention_in_days = 90
-    kms_key_id        = aws_kms_key.data.arn
-}
-
-resource "aws_cloudwatch_log_group" "ec2_messages" {
-    name = "/${local.loggroup_prefix}var/log/messages"
-
-    retention_in_days = 90
-    kms_key_id        = aws_kms_key.data.arn
-}
-
-resource "aws_cloudwatch_log_group" "ec2_secure" {
-    name = "/${local.loggroup_prefix}var/log/secure"
-
-    retention_in_days = 90
-    kms_key_id        = aws_kms_key.data.arn
-}
-
-resource "aws_cloudwatch_log_group" "ec2_ossec_alertsjson" {
-    name = "/${local.loggroup_prefix}var/ossec/logs/alerts/alerts.json"
-
-    retention_in_days = 90
-    kms_key_id        = aws_kms_key.data.arn
-}
-
-resource "aws_cloudwatch_log_group" "ec2_ossec_osseclog" {
-    name = "/${local.loggroup_prefix}var/ossec/logs/ossec.log"
+    name = "/${local.loggroup_prefix}${each.key}"
 
     retention_in_days = 90
     kms_key_id        = aws_kms_key.data.arn
