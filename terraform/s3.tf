@@ -67,7 +67,11 @@ locals {
         "sss.sh"           = { content_type = "text/x-sh" }
         "yumcron.yml"      = { content_type = "text/yaml" }
     }
+
+    assets_extra_scripts = { for idx, s in var.cloudinit_scripts : format("script-%03d.sh", idx) => (can(regex("\n", s)) ? s : file(s))}
+    assets_extra_config  = var.cloudinit_config == null ? null : "${var.cloudinit_config}\nmerge_type: 'list(append)+dict(recurse_array)+str()'"
 }
+
 # =========================================================
 # Resources: Bucket
 # =========================================================
@@ -117,4 +121,28 @@ resource "aws_s3_bucket_object" "assets_cloudinit" {
     acl          = "bucket-owner-full-control"
     content_type = each.value.content_type
     etag         = filemd5("${path.module}/files/cloud-init/${each.key}")
+}
+
+resource "aws_s3_bucket_object" "assets_extra_scripts" {
+    for_each = local.assets_extra_scripts
+
+    bucket = aws_s3_bucket.assets.bucket
+    key    = "cloud-init/extra/${each.key}"
+
+    content      = each.value
+    content_type = "text/x-sh"
+    acl          = "bucket-owner-full-control"
+    etag         = md5(each.value)
+}
+
+resource "aws_s3_bucket_object" "assets_extra_config" {
+    count = local.assets_extra_config == null ? 0 : 1
+
+    bucket = aws_s3_bucket.assets.bucket
+    key    = "cloud-init/extra/config.yml"
+
+    content      = local.assets_extra_config
+    content_type = "text/yaml"
+    acl          = "bucket-owner-full-control"
+    etag         = md5(local.assets_extra_config)
 }

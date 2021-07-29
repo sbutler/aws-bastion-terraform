@@ -26,6 +26,8 @@ data "aws_ami" "amazon_linux2" {
 data "cloudinit_config" "bastion_userdata" {
     depends_on = [
         aws_s3_bucket_object.assets_cloudinit,
+        aws_s3_bucket_object.assets_extra_scripts,
+        aws_s3_bucket_object.assets_extra_config,
     ]
 
     part {
@@ -105,6 +107,25 @@ EOF
             hostname = var.hostname
         })
     }
+
+    dynamic "part" {
+        for_each = length(local.assets_extra_scripts) == 0 && local.assets_extra_config == null ? [] : [
+            concat(
+                keys(local.assets_extra_scripts),
+                local.assets_extra_config == null ? [] : [ "config.yml" ],
+            )
+        ]
+
+        content {
+            filename     = "includes-extra.txt"
+            content_type = "text/x-include-url"
+            content = join("\n", formatlist(
+                "https://%s/cloud-init/extra/%s",
+                aws_s3_bucket.assets.bucket_regional_domain_name,
+                part.value,
+            ))
+        }
+    }
 }
 
 # =========================================================
@@ -170,6 +191,7 @@ resource "aws_launch_template" "bastion" {
     key_name               = var.key_name
     vpc_security_group_ids = [ aws_security_group.bastion.id ]
     user_data              = data.cloudinit_config.bastion_userdata.rendered
+    update_default_version = true
 
     block_device_mappings {
         device_name = "/dev/xvda"

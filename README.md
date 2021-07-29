@@ -73,6 +73,8 @@ newly launched one will have the updated parameters.
 The SSM Parameter Store paths all begin with `/$project/`, where the project
 value is what you use for the `project` deploy variable.
 
+**Some of these parameters are required before deploying the bastion host.**
+
 ### /$project/duo/integration-key (String); /$project/duo/secret-key (SecureString); /$project/duo/hostname (String)
 
 If these parameters are specified then Duo will be installed and configured for
@@ -81,17 +83,23 @@ push. Duo is configured to automatically use the push method.
 
 If you do not specify all of these parameters then Duo is not installed.
 
+**Required**: No
+
 ### /$project/falcon-sensor/CID (SecureString)
 
 If you would like to run CrowdStrike Falcon Sensor on the hosts then you will
 need to get the CID and store it in this parameter. CrowdStrike also requires
 setting a value for the `falcon_sensor_package` variable.
 
+**Required**: No
+
 ### /$project/ossec/whitelists/* (StringList)
 
 You can create one or more whitelists under this SSM Parameter Store path that
 contain a comma separated list of IPs for ossec to ignore. The format of each
 IP is defined by ossec, but generally CIDRs and regexs are allowed.
+
+**Required**: No
 
 ### /$project/ssh/* (SecureString)
 
@@ -111,6 +119,8 @@ private key parts (you can ignore the `.pub` files):
 | `ssh_host_ed25519_key` | `/bastion/ssh/ssh_host_ed25519_key` |
 | `ssh_host_rsa_key`     | `/bastion/ssh/ssh_host_rsa_key` |
 
+**Required**: Yes for terraform deployments.
+
 **Linux Workstations**: if you have OpenSSH and AWS CLI installed then you can
 use the `codebuild/bin/update-hostkeys.sh <bastion project name> <bastion hostname>`
 script to generate and upload host keys.
@@ -122,6 +132,8 @@ for you. You do not need to create them manually.
 
 These two parameters are the AD user with memberOf access that the bastion
 hosts will use to authenticate users.
+
+**Required**: Yes
 
 ### /$project/sss/admin-groups; /$project/sss/allow-groups (StringList)
 
@@ -136,6 +148,8 @@ Corrent Format: `Group 1,Group2`. Wrong Format: `Group 1, Group2`.
 - `allow-groups`: AD groups allowed to SSH but not use sudo. All AD groups
   listed in `admin-groups` are automatically included in `allow-groups`. This
   parameter is optional.
+
+  **Required**: Yes for `admin-groups`
 
 ## Deploy Variables
 
@@ -263,6 +277,42 @@ object with these keys:
 | filesystem_id | Yes      | The EFS ID for the filesystem to mount. |
 | mount_point   | No       | Where to mount the filesystem. Default: `/mnt/$name`. |
 | options       | No       | Options to pass to the mount command. Default: `tls,noresvport`. |
+
+### cloudinit_scripts (list of strings)
+
+**This is an advanced customization option.**
+
+You can run your own shell scripts after the default set of cloud-init scripts
+when instances launch. This supports both boothooks and scripts, although we
+strongly suggest you only use scripts. Each item of the list can be one of
+two things:
+
+- file: full path to a file to run as a script. The script will be uploaded to
+  the S3 assets bucket and run on each instance launch.
+- inline: a full script specified as a string. The script will be uploaded to
+  the S3 assets bucket and run on each instance launch.
+
+The scripts (file or inline) must begin with either `#!` (recommended)
+or `#cloud-boothook` (dangerous). Please refer to the [cloud-init docs for more
+information on scripts](https://cloudinit.readthedocs.io/en/latest/topics/format.html#user-data-script).
+
+**CodeBuild Deployment**: this parameter is not available.
+
+### cloudinit_config (string)
+
+**This is an advanced customization option.**
+
+You can specify your own YAML file with cloud-init configuration commands to
+run when instances launch. This is a good way to install additional packages,
+run simple commands, and write simple files. [AWS has some customizations to
+cloud-init for installing packages](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html#user-data-cloud-init), although you can also use most of the
+[cloud-init modules](https://cloudinit.readthedocs.io/en/latest/topics/modules.html).
+
+The script you provide must begin with `#cloud-config`. This terraform will
+automatically add an additional line at the end of your config to make sure it
+merges properly with the default configs.
+
+**CodeBuild Deployment**: this parameter is not available.
 
 ## Deployment
 

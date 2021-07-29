@@ -135,3 +135,20 @@ variable "extra_efs" {
         error_message = "EFS names must be only letters, numbers, underscores, and dashes."
     }
 }
+
+variable "cloudinit_scripts" {
+    type        = list(string)
+    description = "List of script filenames or content to be run as part of the Cloud-Init process."
+    default     = []
+}
+
+variable "cloudinit_config" {
+    type        = string
+    description = "YAML Cloud-Init config that will be merged with the default configs."
+    default     = null
+
+    validation {
+        condition     = var.cloudinit_config == null || can(regex("^#cloud-config\\s*\\n", var.cloudinit_config))
+        error_message = "Cloud-Init config must begin with '#cloud-config'."
+    }
+}
