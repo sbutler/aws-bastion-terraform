@@ -71,7 +71,15 @@ deployment then you will need to terminate the current bastion host and the
 newly launched one will have the updated parameters.
 
 The SSM Parameter Store paths all begin with `/$project/`, where the project
-value is what you use for the `project` deploy variable.
+value is what you use for the `project` deploy variable. You will need to know
+what value you plan on using for `project` to create these SSM Parmeters:
+
+- Terraform: If you do not specify the `project` variable then the default
+  value of `"bastion"` is used. Your SSM paths then all begin with `/bastion/`.
+- CodeBuild: The value of the CloudFormation Stack name is used as the `project`
+  variable. Your SSM paths then all begin with `/$STACK_NAME/`. If you are
+  unsure, then assume it will be `"bastion"` and use that value for the stack
+  name when you do the CodeBuild deployment.
 
 **Some of these parameters are required before deploying the bastion host.**
 
