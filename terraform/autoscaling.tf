@@ -19,6 +19,12 @@ data "aws_ami" "amazon_linux2" {
     owners = [ "amazon" ]
 }
 
+data "aws_ip_ranges" "ec2_instance_connect" {
+    regions  = [ local.region_name ]
+    services = [ "ec2_instance_connect" ]
+}
+
+
 # =========================================================
 # Data: Cloud Init
 # =========================================================
@@ -156,6 +162,34 @@ resource "aws_security_group" "bastion" {
 
         cidr_blocks      = [ "0.0.0.0/0" ]
         ipv6_cidr_blocks = [ "::/0" ]
+    }
+
+    dynamic "ingress" {
+        for_each = data.aws_ip_ranges.ec2_instance_connect.cidr_blocks
+
+        content {
+            description = "EC2 Instance Connect (console)"
+
+            protocol  = "tcp"
+            from_port = 22
+            to_port   = 22
+
+            cidr_blocks = [ ingress.value ]
+        }
+    }
+
+    dynamic "ingress" {
+        for_each = data.aws_ip_ranges.ec2_instance_connect.ipv6_cidr_blocks
+
+        content {
+            description = "EC2 Instance Connect (console)"
+
+            protocol  = "tcp"
+            from_port = 22
+            to_port   = 22
+
+            ipv6_cidr_blocks = [ ingress.value ]
+        }
     }
 
     egress {
