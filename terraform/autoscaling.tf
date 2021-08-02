@@ -94,6 +94,7 @@ data "cloudinit_config" "bastion_userdata" {
         content_type = "text/x-include-url"
         content = <<EOF
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/init.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/network.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/efs.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/extra-enis.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ec2logs.yml
