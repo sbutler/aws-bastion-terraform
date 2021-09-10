@@ -134,6 +134,14 @@ write_files:
                                 "log_stream_name": "{instance_id}"
                             },
                             {
+                                "file_path": "/var/log/sudo.log*",
+                                "timezone": "Local",
+                                "timestamp_format": "%b %-d %H:%M:%S",
+                                "multi_line_start_pattern": "{timestamp_format}",
+                                "log_group_name": "/${loggroup_prefix}var/log/sudo.log",
+                                "log_stream_name": "{instance_id}"
+                            },
+                            {
                                 "file_path": "/var/ossec/logs/ossec.log*",
                                 "timezone": "Local",
                                 "timestamp_format": "%Y/%m/%d %H:%M:%S",

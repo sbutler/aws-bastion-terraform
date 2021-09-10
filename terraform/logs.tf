@@ -10,6 +10,7 @@ locals {
         "var/log/cron" = {}
         "var/log/messages" = {}
         "var/log/secure" = {}
+        "var/log/sudo.log" = {}
         "var/ossec/logs/alerts/alerts.json" = {}
         "var/ossec/logs/ossec.log" = {}
     }

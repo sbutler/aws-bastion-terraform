@@ -5,6 +5,9 @@
 #
 #   ssh_hostkeys_path: base path in SSM Parameter Store for host keys. Each
 #       item under this path will be created as a key file in  /etc/sshd/.
+#   ssh_client_alive_internal: how often sshd will check that a client is alive.
+#   ssh_client_alive_count_max: how many idle checks before a client is
+#       disconnected.
 
 set -e
 ILLINOIS_MODULE=ssh
@@ -19,6 +22,9 @@ if [[ -z $ssh_hostkeys_path ]]; then
     exit 1
 fi
 
+: ${ssh_client_alive_internal:=300}
+: ${ssh_client_alive_count_max:=12}
+
 illinois_init_status running
 cfg_modified=no
 
@@ -32,7 +38,9 @@ for p in "${ssh_hostkeys_lines[@]}"; do
     f="/etc/ssh/$(basename "$p")"
     illinois_log "getting host key $p -> $f"
     if aws ssm get-parameter --with-decryption --name "$p" --output text --query Parameter.Value > "$f"; then
+        chown root:root "$f"
         chmod 0600 "$f"
+
         illinois_log "creating public key for $f"
         ssh-keygen -y -f "$f" > "$f.pub"
 
@@ -107,8 +115,10 @@ cfg_kvseprex="\\s+"
 cfg_kvsepstr=" "
 cfg_beforematch="/^\\s*# Example of overriding settings on a per-user basis/"
 
+cfg_check_value_eq Banner                   /etc/issue.net
 cfg_check_value_eq Protocol                 2
 cfg_check_value_eq LogLevel                 INFO
+cfg_check_value_eq MaxStartups              10:30:60
 cfg_check_value_le MaxAuthTries             4
 cfg_check_value_eq IgnoreRhosts             yes
 cfg_check_value_eq HostbasedAuthentication  no
@@ -118,10 +128,11 @@ cfg_check_value_eq PermitUserEnvironment    no
 cfg_check_value_eq Ciphers                  'aes256-ctr,aes192-ctr,aes128-ctr'
 cfg_check_value_eq MACs                     'hmac-sha2-512,hmac-sha2-256'
 cfg_check_value_eq KexAlgorithms            'curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256'
-cfg_check_value_le ClientAliveInterval      300
-cfg_check_value_le ClientAliveCountMax      12
+cfg_check_value_le ClientAliveInterval      $ssh_client_alive_internal
+cfg_check_value_le ClientAliveCountMax      $ssh_client_alive_count_max
 cfg_check_value_le LoginGraceTime           60
 cfg_check_value_eq X11Forwarding            yes
+cfg_check_value_eq AllowGroups              "wheel \"domain users\""
 
 if [[ $cfg_modified = "yes" ]]; then
     if ! sshd -t -f "$cfg_file"; then

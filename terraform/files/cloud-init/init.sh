@@ -20,6 +20,16 @@ illinois_log () {
     logger --tag "illinois-init-$_module" --priority "local3.$_level" --stderr -- "$@"
 }
 
+illinois_write_file () {
+    local _file="$1"
+    local _owner="${2:-root:root}"
+    local _mode="${3:-0644}"
+
+    cat > "$_file"
+    chown "$_owner" "$_file"
+    chmod "$_mode" "$_file"
+}
+
 tmpfiles=()
 illinois_finish () {
     set +e

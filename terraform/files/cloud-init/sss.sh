@@ -126,7 +126,7 @@ EOF
 chmod 0600 /etc/sssd/sssd.conf
 
 illinois_log "configuring system authentication"
-authconfig --enablesssd --enablesssdauth --enablemkhomedir --update
+authconfig --enablefaillock --faillockargs="deny=5 unlock_time=900" --enablesssd --enablesssdauth --enablemkhomedir --update
 
 illinois_log "enabling and start sssd"
 systemctl enable sssd

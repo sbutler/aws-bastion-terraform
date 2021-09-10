@@ -55,6 +55,7 @@ data "aws_iam_policy_document" "assets" {
 
 locals {
     assets_cloudinit = {
+        "cis.sh"           = { content_type = "text/x-sh" }
         "duo.sh"           = { content_type = "text/x-sh" }
         "ec2logs.yml"      = { content_type = "text/yaml" }
         "efs.sh"           = { content_type = "text/x-sh" }

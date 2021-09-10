@@ -16,11 +16,13 @@ ILLINOIS_MODULE=network
 
 illinois_init_status running
 
-if ! systemctl is-active iptables &> /dev/null; then
-    illinois_log "starting iptables"
-    systemctl enable iptables
-    systemctl start iptables
-fi
+for service in iptables ip6tables ipset; do
+    if ! systemctl is-active $service &> /dev/null; then
+        illinois_log "starting $service"
+        systemctl enable $service
+        systemctl start $service
+    fi
+done
 
 illinois_ipt_rule () {
     local ipt=$1
@@ -81,11 +83,7 @@ for cmd in illinois_ip4_rule illinois_ip6_rule; do
     done
 done
 
-cat > /etc/sysctl.d/99-illinois-network.conf <<HERE
-# Kernel
-fs.suid_dumpable = 0
-kernel.randomize_va_space = 2
-
+illinois_write_file /etc/sysctl.d/99-illinois-network.conf <<HERE
 # IPv4 lockdown
 net.ipv4.ip_forward = ${ip_forward}
 net.ipv4.icmp_echo_ignore_broadcasts = 1
@@ -111,13 +109,8 @@ net.ipv6.conf.all.accept_redirects = 0
 net.ipv6.conf.default.accept_source_route = 0
 net.ipv6.conf.default.accept_redirects = 0
 HERE
-chmod 0644 /etc/sysctl.d/99-illinois-network.conf
-chown root:root /etc/sysctl.d/99-illinois-network.conf
 
 illinois_log "setting kernel parameters"
-sysctl -w fs.suid_dumpable=0
-sysctl -w kernel.randomize_va_space=2
-
 sysctl -w net.ipv4.ip_forward=${ip_forward}
 sysctl -w net.ipv4.icmp_echo_ignore_broadcasts=1
 sysctl -w net.ipv4.icmp_ignore_bogus_error_responses=1

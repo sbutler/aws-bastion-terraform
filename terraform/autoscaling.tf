@@ -105,6 +105,7 @@ https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/sss.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/duo.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/falcon-sensor.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ossec.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/cis.sh
 EOF
     }
 
