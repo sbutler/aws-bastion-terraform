@@ -1,0 +1,48 @@
+runcmd:
+    - [ bash, -c, "reason=REBOOT; . /etc/dhcp/dhclient-exit-hooks.d/illinois-resolv" ]
+
+write_files:
+    - path: /etc/dhcp/dhclient-exit-hooks.d/illinois-resolv
+      owner: root:root
+      permissions: '0755'
+      content: |
+        illinois_search() {
+            local search="$(egrep '^\s*search' /etc/resolv.conf)"
+            if [[ -z $search ]]; then
+                search="search"
+            fi
+
+            local illinois_search=("ad.uillinois.edu")
+            local mydomain=$(dnsdomainname)
+            if [[ -n $mydomain && ! ($mydomain = "localdomain" || $mydomain = "localdomain6" || $mydomain = "(none)" || $mydomain = *\ *) ]]; then
+                illinois_search=("$mydomain" "${illinois_search[@]}")
+            fi
+
+            needs_update=n
+            for d in "${illinois_search[@]}"; do
+                is_in=n
+                for s in ${search}; do
+                    if [[ $s = $d || $s = $d. ]]; then
+                        is_in=y
+                        break
+                    fi
+                done
+
+                if [[ $is_in = n ]]; then
+                    search="$search $d"
+                    needs_update=y
+                fi
+            done
+
+            if [[ $needs_update = y ]]; then
+                sed -i -re "s/^\s*search.*/$search/" /etc/resolv.conf
+            fi
+        }
+
+        # Call our search everywhere /usr/sbin/dhclient-scripts edits its search
+        case "$reason" in
+            BOUND|RENEW|REBIND|REBOOT|TIMEOUT)  illinois_search ;;
+            BOUND6|RENEW6|REBIND6)              illinois_search ;;
+        esac
+
+merge_type: 'list(append)+dict(recurse_array)+str()'

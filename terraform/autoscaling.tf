@@ -98,6 +98,7 @@ https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/network.s
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/efs.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/extra-enis.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ec2logs.yml
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/resolv.yml
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/yumcron.yml
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ssh.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/sss.sh

@@ -63,6 +63,7 @@ locals {
         "init.sh"          = { content_type = "text/x-sh" }
         "network.sh"       = { content_type = "text/x-sh" }
         "ossec.sh"         = { content_type = "text/x-sh" }
+        "resolv.yml"       = { content_type = "text/yaml" }
         "s3-download.sh"   = { content_type = "text/x-sh" }
         "ssh.sh"           = { content_type = "text/x-sh" }
         "sss.sh"           = { content_type = "text/x-sh" }
