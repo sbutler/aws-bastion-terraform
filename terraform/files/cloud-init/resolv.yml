@@ -1,3 +1,5 @@
+#cloud-config
+
 runcmd:
     - [ bash, -c, "reason=REBOOT; . /etc/dhcp/dhclient-exit-hooks.d/illinois-resolv" ]
 

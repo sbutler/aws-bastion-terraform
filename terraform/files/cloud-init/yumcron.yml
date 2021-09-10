@@ -1,3 +1,5 @@
+#cloud-config
+
 packages:
     - yum-cron
 
