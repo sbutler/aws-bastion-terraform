@@ -26,6 +26,13 @@ mount_target=/home/ad.uillinois.edu
 declare -A efs_mount_targets=( ${sharedfs_mount_targets} )
 EOF
 
+write_file /etc/opt/illinois/cloud-init/efs/bastion-cron << "EOF"
+efs_filesystem_id=${sharedfs_id}
+efs_options=tls,noresvport,accesspoint=${sharedfs_cron_id}
+mount_target=/var/spool/cron
+declare -A efs_mount_targets=( ${sharedfs_mount_targets} )
+EOF
+
 %{for efs_name, efs_config in extra_efs }
 write_file /etc/opt/illinois/cloud-init/efs/${efs_name} << "EOF"
 efs_filesystem_id=${efs_config.filesystem_id}
@@ -55,6 +62,10 @@ write_file /etc/opt/illinois/cloud-init/duo.conf << "EOF"
 duo_ikey_parameter="${duo_ikey_parameter}"
 duo_skey_parameter="${duo_skey_parameter}"
 duo_host_parameter="${duo_host_parameter}"
+EOF
+
+write_file /etc/opt/illinois/cloud-init/cron.conf << "EOF"
+cron_allow_parameter="${cron_allow_parameter}"
 EOF
 
 write_file /etc/opt/illinois/cloud-init/extra-enis.conf << "EOF"

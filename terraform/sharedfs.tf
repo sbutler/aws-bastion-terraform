@@ -54,6 +54,18 @@ resource "aws_efs_access_point" "sharedfs_home_uofi" {
     }
 }
 
+resource "aws_efs_access_point" "sharedfs_cron" {
+    file_system_id = aws_efs_file_system.sharedfs.id
+    root_directory {
+        path = "/cron"
+        creation_info {
+            owner_uid   = 0
+            owner_gid   = 0
+            permissions = "700"
+        }
+    }
+}
+
 # Create one sharedfs mount target per subnet.
 resource "aws_efs_mount_target" "sharedfs" {
     count = length(local.internal_subnet_ids)

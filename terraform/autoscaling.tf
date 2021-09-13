@@ -49,6 +49,7 @@ data "cloudinit_config" "bastion_userdata" {
 
                 sharedfs_id           = aws_efs_file_system.sharedfs.id
                 sharedfs_home_uofi_id = aws_efs_access_point.sharedfs_home_uofi.id
+                sharedfs_cron_id      = aws_efs_access_point.sharedfs_cron.id
                 extra_efs             = local.extra_efs
 
                 sharedfs_mount_targets = local.vpc_id == local.internal_vpc_id ? "" : join(
@@ -74,6 +75,8 @@ data "cloudinit_config" "bastion_userdata" {
                 duo_ikey_parameter = "/${local.duo_parameter_prefix}integration-key"
                 duo_skey_parameter = "/${local.duo_parameter_prefix}secret-key"
                 duo_host_parameter = "/${local.duo_parameter_prefix}hostname"
+
+                cron_allow_parameter = "/${local.cron_parameter_prefix}allow"
 
                 extra_enis_prefix_list_ids = join(" ", formatlist(
                     "[eth%d]='%s'",
@@ -103,6 +106,7 @@ https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/yumcron.y
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ssh.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/sss.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/duo.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/cron.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/falcon-sensor.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ossec.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/cis.sh

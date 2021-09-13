@@ -83,6 +83,23 @@ what value you plan on using for `project` to create these SSM Parmeters:
 
 **Some of these parameters are required before deploying the bastion host.**
 
+### Cron
+
+* Parameters:
+  - `/$project/cron/allow` (StringList)
+* Required: No
+
+Allows you to specify a list of users who are allowed to use cron. Specify
+users separated by commas; groups are not supported. By default, no users are
+allowed to use cron.
+
+**Caution:** it is not recommended you run cron jobs on the bastion host. A
+more native solution like a scheduled AWS Lambda or ECS Task would be better.
+However, if you do run cron jobs be aware that a job might run at the same time
+on more than one host. This shouldn't happen in normal operations, but
+frequently scheduled jobs might run more than once if the ASG is replacing an
+instance.
+
 ### Duo
 
 * Parameters:

@@ -103,6 +103,7 @@ locals {
 
     loggroup_prefix          = "${local.name}/"
     metrics_namespace        = "${local.name}"
+    cron_parameter_prefix    = "${local.name}/cron/"
     duo_parameter_prefix     = "${local.name}/duo/"
     sss_parameter_prefix     = "${local.name}/sss/"
     ssh_parameter_prefix     = "${local.name}/ssh/"
