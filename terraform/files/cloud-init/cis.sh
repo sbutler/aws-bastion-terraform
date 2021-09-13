@@ -69,7 +69,7 @@ HERE
 
 if ! egrep -q '^auth\s+required\s+pam_wheel.so' /etc/pam.d/su; then
     illinois_log "securing su"
-    sed -i.illinois-cis -re 's/^#(auth\s+required\s+pam_wheel.so\s+use_uid)$/\1/' /etc/pam.d/su
+    sed -i.illinois-cis -re 's/^#(auth\s+required\s+pam_wheel.so\s+use_uid)$/auth            required        pam_wheel.so use_uid group=wheel/' /etc/pam.d/su
 fi
 
 illinois_log "setting login banners"
@@ -104,7 +104,7 @@ HERE
 fi
 
 # This is pointless since chrony already runs as this user, but make CIS happy
-sed -i -re 's/^\s*OPTIONS="(.*)"$/OPTIONS="-u chrony \1"/' /etc/sysconfig/chronyd
+sed -i.illinois-cis -re 's/^\s*OPTIONS="(.*)"$/OPTIONS="-u chrony \1"/' /etc/sysconfig/chronyd
 
 for unit in nfs-server rpcbind rpcbind.socket rsyncd; do
     illinois_log "masking systemd unit $unit"
@@ -112,8 +112,43 @@ for unit in nfs-server rpcbind rpcbind.socket rsyncd; do
 done
 
 illinois_log "setting up journald"
-sed -i -re 's/^#?\s*Storage=.*/Storage=persistent/; s/^#?\s*Compress=.*/Compress=yes/;' /etc/systemd/journald.conf
+sed -i.illinois-cis -r \
+    -e 's/^#?\s*Storage=.*/Storage=persistent/' \
+    -e 's/^#?\s*Compress=.*/Compress=yes/' \
+    /etc/systemd/journald.conf
 systemctl restart systemd-journald
+
+illinois_log "setting pwquality"
+sed -i.illinois-cis -r \
+    -e 's/^#?\s*minlen\s+=.*/minlen = 14/' \
+    -e 's/^#?\s*(dcredit|ucredit|ocredit|lcredit)\s+=.*/\1 = -1/' \
+    /etc/security/pwquality.conf
+
+for file in password-auth system-auth; do
+    pam_cfg_file=/etc/pam.d/${file}-illinois
+    if ! egrep -q '^\s*password\s+required\s+pam_pwhistory\.so' $pam_cfg_file; then
+        illinois_log "$file: adding pam_pwhistory after password requisite pam_pwquality.so"
+        sed -i -re '/^\s*password\s+requisite\s+pam_pwquality\.so/a password    required      pam_pwhistory.so use_authtok remember=5 retry=3' "$pam_cfg_file"
+    fi
+done
+
+for file in profile bashrc; do
+    illinois_log "$file: setting restrictive umask"
+    sed -i.illinois-cis -re 's/^(\s*umask\s+).*/\1027/' /etc/$file
+done
+sed -i.illinois-cis-umask -r \
+    -e 's/^(s*UMASK\s+).*/\1027/' \
+    -e 's/^(s*USERGROUPS_ENAB\s+).*/\1no/' \
+    /etc/login.defs
+
+illinois_log "setting max/min password age"
+sed -i.illinois-cis-passage -r \
+    -e 's/^(s*PASS_MAX_DAYS\s+).*/\1365/' \
+    -e 's/^(s*PASS_MIN_DAYS\s+).*/\11/' \
+    /etc/login.defs
+
+illinois_log "setting inactive password lock"
+useradd -D -f 30
 
 illinois_init_status finished
 date > /var/lib/illinois-cis-init
