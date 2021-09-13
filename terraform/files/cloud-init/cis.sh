@@ -109,5 +109,9 @@ for unit in nfs-server rpcbind rpcbind.socket rsyncd; do
     systemctl --now mask $unit
 done
 
+illinois_log "setting up journald"
+sed -i -re 's/^#?\s*Storage=.*/Storage=persistent/; s/^#?\s*Compress=.*/Compress=yes/;' /etc/systemd/journald.conf
+systemctl restart systemd-journald
+
 illinois_init_status finished
 date > /var/lib/illinois-cis-init
