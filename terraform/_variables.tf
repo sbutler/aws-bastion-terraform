@@ -86,6 +86,17 @@ variable "falcon_sensor_package" {
     }
 }
 
+variable "shell_idle_timeout" {
+    type        = number
+    description = "Number of seconds before an idle shell is disconnected."
+    default     = 900
+
+    validation {
+        condition     = var.shell_idle_timeout >= 0
+        error_message = "Value must be positive or 0."
+    }
+}
+
 variable "public_subnets" {
     type        = list(string)
     description = "Subnet names for public access where the primary IP will be."

@@ -47,8 +47,14 @@ metrics_collection_interval=${metrics_collection_interval}
 metrics_namespace=${metrics_namespace}
 EOF
 
+write_file /etc/opt/illinois/cloud-init/cis.conf << "EOF"
+cis_shell_timeout=${cis_shell_timeout}
+EOF
+
 write_file /etc/opt/illinois/cloud-init/ssh.conf << "EOF"
 ssh_hostkeys_path="${ssh_hostkeys_path}"
+ssh_client_alive_interval=${ssh_client_alive_interval}
+ssh_client_alive_count_max=${ssh_client_alive_count_max}
 EOF
 
 write_file /etc/opt/illinois/cloud-init/sss.conf << "EOF"

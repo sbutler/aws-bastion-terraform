@@ -13,7 +13,7 @@ ILLINOIS_MODULE=cis
 
 [[ -e /etc/opt/illinois/cloud-init/cis.conf ]] && . /etc/opt/illinois/cloud-init/cis.conf
 
-: ${cis_shell_timeout:=3600}
+: ${cis_shell_timeout:=900}
 
 illinois_init_status running
 
@@ -96,10 +96,12 @@ illinois_write_file /etc/issue.net <<HERE
 ====================================================================
 HERE
 
-illinois_log "setting shell timeouts"
-illinois_write_file /etc/profile.d/illinois-cis.conf <<HERE
+if [[ $cis_shell_timeout -gt 0 ]]; then
+    illinois_log "setting shell timeouts"
+    illinois_write_file /etc/profile.d/illinois-cis.sh <<HERE
 readonly TMOUT=${cis_shell_timeout} ; export TMOUT
 HERE
+fi
 
 # This is pointless since chrony already runs as this user, but make CIS happy
 sed -i -re 's/^\s*OPTIONS="(.*)"$/OPTIONS="-u chrony \1"/' /etc/sysconfig/chronyd

@@ -65,12 +65,16 @@ data "cloudinit_config" "bastion_userdata" {
                 metrics_namespace           = local.metrics_namespace
                 metrics_collection_interval = var.enhanced_monitoring ? 60 : 300
 
+                cis_shell_timeout = var.shell_idle_timeout
+
                 sss_admingroups_parameter = "/${local.sss_parameter_prefix}admin-groups"
                 sss_allowgroups_parameter = "/${local.sss_parameter_prefix}allow-groups"
                 sss_binduser_parameter    = "/${local.sss_parameter_prefix}bind-username"
                 sss_bindpass_parameter    = "/${local.sss_parameter_prefix}bind-password"
 
-                ssh_hostkeys_path = "/${local.ssh_parameter_prefix}"
+                ssh_hostkeys_path          = "/${local.ssh_parameter_prefix}"
+                ssh_client_alive_interval  = var.shell_idle_timeout
+                ssh_client_alive_count_max = 0
 
                 duo_ikey_parameter = "/${local.duo_parameter_prefix}integration-key"
                 duo_skey_parameter = "/${local.duo_parameter_prefix}secret-key"

@@ -91,6 +91,11 @@ Parameters:
     Default: ""
     AllowedPattern: "^(s3://[a-z0-9][a-z0-9.-]+[a-z0-9.]/.+\\.rpm)?$"
     ConstraintDescription: The S3 URL must be empty or of the form "s3://bucket/path/to/sensor.rpm".
+  ShellIdleTimeout:
+    Type: Number
+    Description: Number of seconds before an idle shell is disconnected.
+    Default: 900
+    MinValue: 0
 
   PublicSubnets:
     Type: List<AWS::EC2::Subnet::Id>
@@ -133,6 +138,7 @@ Metadata:
           - SSHKeyName
           - EnhancedMonitoring
           - FalconSensorPackage
+          - ShellIdleTimeout
       - Label: Networking
         Parameters:
           - PublicSubnets
@@ -631,6 +637,7 @@ Resources:
           - { Name: TF_VAR_key_name, Value: !Ref SSHKeyName }
           - { Name: TF_VAR_enhanced_monitoring, Value: !Ref EnhancedMonitoring }
           - { Name: TF_VAR_falcon_sensor_package, Value: !Ref FalconSensorPackage }
+          - { Name: TF_VAR_shell_idle_timeout, Value: !Ref ShellIdleTimeout }
 
           - Name: TF_VAR_public_subnets
             Value: !Join [ ",", !Ref PublicSubnets ]
@@ -723,6 +730,7 @@ Resources:
           - { Name: TF_VAR_key_name, Value: !Ref SSHKeyName }
           - { Name: TF_VAR_enhanced_monitoring, Value: !Ref EnhancedMonitoring }
           - { Name: TF_VAR_falcon_sensor_package, Value: !Ref FalconSensorPackage }
+          - { Name: TF_VAR_shell_idle_timeout, Value: !Ref ShellIdleTimeout }
 
           - Name: TF_VAR_public_subnets
             Value: !Join [ ",", !Ref PublicSubnets ]

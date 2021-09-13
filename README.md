@@ -271,6 +271,14 @@ the instance.
 
 Default: `null`
 
+### shell_idle_timeout (number)
+
+The number of seconds before an idle shell is closed/disconnected. CIS
+recommends no longer than 900s (15mins). If this variable is `0` then idle
+shells are not closed.
+
+Default: `900`.
+
 ### public_subnets (list of strings)
 
 List of public subnet names or IDs where the primary network interface will be

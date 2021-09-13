@@ -5,7 +5,7 @@
 #
 #   ssh_hostkeys_path: base path in SSM Parameter Store for host keys. Each
 #       item under this path will be created as a key file in  /etc/sshd/.
-#   ssh_client_alive_internal: how often sshd will check that a client is alive.
+#   ssh_client_alive_interval: how often sshd will check that a client is alive.
 #   ssh_client_alive_count_max: how many idle checks before a client is
 #       disconnected.
 
@@ -22,8 +22,8 @@ if [[ -z $ssh_hostkeys_path ]]; then
     exit 1
 fi
 
-: ${ssh_client_alive_internal:=300}
-: ${ssh_client_alive_count_max:=12}
+: ${ssh_client_alive_interval:=900}
+: ${ssh_client_alive_count_max:=0}
 
 illinois_init_status running
 cfg_modified=no
@@ -128,8 +128,14 @@ cfg_check_value_eq PermitUserEnvironment    no
 cfg_check_value_eq Ciphers                  'aes256-ctr,aes192-ctr,aes128-ctr'
 cfg_check_value_eq MACs                     'hmac-sha2-512,hmac-sha2-256'
 cfg_check_value_eq KexAlgorithms            'curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256'
-cfg_check_value_le ClientAliveInterval      $ssh_client_alive_internal
-cfg_check_value_le ClientAliveCountMax      $ssh_client_alive_count_max
+cfg_check_value_eq TCPKeepAlive             yes
+if [[ $ssh_client_alive_interval -gt 0 ]]; then
+    cfg_check_value_le ClientAliveInterval  $ssh_client_alive_interval
+    cfg_check_value_le ClientAliveCountMax  $ssh_client_alive_count_max
+else
+    cfg_check_value_le ClientAliveInterval  60
+    cfg_check_value_le ClientAliveCountMax  3
+fi
 cfg_check_value_le LoginGraceTime           60
 cfg_check_value_eq X11Forwarding            yes
 cfg_check_value_eq AllowGroups              "wheel \"domain users\""
