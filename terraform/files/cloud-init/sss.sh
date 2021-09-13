@@ -126,7 +126,33 @@ EOF
 chmod 0600 /etc/sssd/sssd.conf
 
 illinois_log "configuring system authentication"
-authconfig --enablefaillock --faillockargs="deny=5 unlock_time=900" --enablesssd --enablesssdauth --enablemkhomedir --update
+# Run authconfig and then copy its results for our own, so later scripts can
+# modify it
+authconfig --enablefaillock --faillockargs="deny=5 unlock_time=900" \
+    --enablesssd --enablesssdauth \
+    --enablemkhomedir \
+    --update
+for file in password-auth system-auth; do
+    pam_cfg_file=/etc/pam.d/$file
+    if [[ -h $pam_cfg_file ]]; then
+        if [[ ! -e "${pam_cfg_file}-illinois" ]]; then
+            illinois_log "creating ${pam_cfg_file}-illinois"
+            cp "$pam_cfg_file" "${pam_cfg_file}-illinois"
+        fi
+
+        if [[ $(readlink "$pam_cfg_file") != "${file}-illinois" ]]; then
+            illinois_log "linking $pam_cfg_file to ${file}-illinois"
+            rm "$pam_cfg_file"
+            ln -s "${file}-illinois" "$pam_cfg_file"
+        fi
+    fi
+done
+illinois_log "fixing faillock in password-auth-illinois"
+sed -i.illinois-sss -r \
+    -e '/^\s*auth\s+required\s+pam_faildelay\.so/a auth        required      pam_faillock.so preauth silent deny=5 unlock_time=900' \
+    -e '/^\s*auth\s+required\s+pam_deny\.so/i auth        required      pam_faillock.so authfail deny=5 unlock_time=900' \
+    -e '/^\s*auth\s+required\s+pam_faillock\.so/d' \
+    /etc/pam.d/password-auth-illinois
 
 illinois_log "enabling and start sssd"
 systemctl enable sssd
