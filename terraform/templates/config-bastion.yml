@@ -10,7 +10,6 @@ packages:
     - iptables
     - iptables-services
     - jq
-    - openldap-clients
     - mariadb
     - mariadb-devel
     - pv
