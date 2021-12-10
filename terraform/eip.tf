@@ -74,7 +74,7 @@ resource "aws_eip" "bastion" {
 
 module "lambda_associateEIP" {
     source  = "terraform-aws-modules/lambda/aws"
-    version = "2.4.0"
+    version = "2.27.1"
 
     function_name = "${local.name_prefix}associateEIP"
     description   = "Associate an EIP with a bastion instance."
