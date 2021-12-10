@@ -89,6 +89,7 @@ module "lambda_associateEIP" {
     }
 
     create_current_version_allowed_triggers = false
+    role_name              = "${local.name_prefix}associateEIP-${local.region_name}"
     attach_policy_jsons    = true
     number_of_policy_jsons = 1
     policy_jsons = [
