@@ -6,7 +6,7 @@ data "aws_ami" "amazon_linux2" {
     most_recent = true
     filter {
         name   = "name"
-        values = [ "amzn2-ami-hvm-*-gp2" ]
+        values = [ "amzn2-ami-kernel-5.10-hvm-*-gp2" ]
     }
     filter {
         name   = "virtualization-type"
