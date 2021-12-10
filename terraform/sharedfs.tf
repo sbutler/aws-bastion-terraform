@@ -54,10 +54,22 @@ resource "aws_efs_access_point" "sharedfs_home_uofi" {
     }
 }
 
-resource "aws_efs_access_point" "sharedfs_cron" {
+resource "aws_efs_access_point" "sharedfs_var_spool_at" {
     file_system_id = aws_efs_file_system.sharedfs.id
     root_directory {
-        path = "/cron"
+        path = "/var/spool/at"
+        creation_info {
+            owner_uid   = 0
+            owner_gid   = 0
+            permissions = "700"
+        }
+    }
+}
+
+resource "aws_efs_access_point" "sharedfs_var_spool_cron" {
+    file_system_id = aws_efs_file_system.sharedfs.id
+    root_directory {
+        path = "/var/spool/cron"
         creation_info {
             owner_uid   = 0
             owner_gid   = 0

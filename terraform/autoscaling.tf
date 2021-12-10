@@ -47,10 +47,11 @@ data "cloudinit_config" "bastion_userdata" {
                 asg_name    = local.asg_name
                 prompt_name = local.name
 
-                sharedfs_id           = aws_efs_file_system.sharedfs.id
-                sharedfs_home_uofi_id = aws_efs_access_point.sharedfs_home_uofi.id
-                sharedfs_cron_id      = aws_efs_access_point.sharedfs_cron.id
-                extra_efs             = local.extra_efs
+                sharedfs_id                = aws_efs_file_system.sharedfs.id
+                sharedfs_home_uofi_id      = aws_efs_access_point.sharedfs_home_uofi.id
+                sharedfs_var_spool_at_id   = aws_efs_access_point.sharedfs_var_spool_at.id
+                sharedfs_var_spool_cron_id = aws_efs_access_point.sharedfs_var_spool_cron.id
+                extra_efs                  = local.extra_efs
 
                 sharedfs_mount_targets = local.vpc_id == local.internal_vpc_id ? "" : join(
                     " ",

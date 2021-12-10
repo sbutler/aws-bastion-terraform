@@ -26,9 +26,16 @@ mount_target=/home/ad.uillinois.edu
 declare -A efs_mount_targets=( ${sharedfs_mount_targets} )
 EOF
 
-write_file /etc/opt/illinois/cloud-init/efs/bastion-cron << "EOF"
+write_file /etc/opt/illinois/cloud-init/efs/bastion-var-spool-at << "EOF"
 efs_filesystem_id=${sharedfs_id}
-efs_options=tls,noresvport,accesspoint=${sharedfs_cron_id}
+efs_options=tls,noresvport,accesspoint=${sharedfs_var_spool_at_id}
+mount_target=/var/spool/at
+declare -A efs_mount_targets=( ${sharedfs_mount_targets} )
+EOF
+
+write_file /etc/opt/illinois/cloud-init/efs/bastion-var-spool-cron << "EOF"
+efs_filesystem_id=${sharedfs_id}
+efs_options=tls,noresvport,accesspoint=${sharedfs_var_spool_cron_id}
 mount_target=/var/spool/cron
 declare -A efs_mount_targets=( ${sharedfs_mount_targets} )
 EOF
