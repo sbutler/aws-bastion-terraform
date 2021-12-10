@@ -37,7 +37,7 @@ illinois_ip4_rule () { illinois_ipt_rule iptables "$@"; }
 illinois_ip6_rule () { illinois_ipt_rule ip6tables "$@"; }
 
 INPUT_TCP_ALLOW="22 $tcp_allow_ports"
-INPUT_UDP_ALLOW="68 123 323 $udp_allow_ports"
+INPUT_UDP_ALLOW="123 323 $udp_allow_ports"
 
 iptables -t filter -N INPUT_illinois_allow
 ip6tables -t filter -N INPUT_illinois_allow
@@ -49,6 +49,8 @@ for port in $INPUT_UDP_ALLOW; do
     illinois_ip4_rule -A INPUT_illinois_allow -p udp --dport $port -j ACCEPT
     illinois_ip6_rule -A INPUT_illinois_allow -p udp --dport $port -j ACCEPT
 done
+illinois_ip4_rule -A INPUT_illinois_allow -p udp --dport 68 -j ACCEPT
+illinois_ip6_rule -A INPUT_illinois_allow -p udp --dport 546 -d fe80::/64 -j ACCEPT
 
 # Flush the tables first and then add our rules
 for ipt in iptables ip6tables; do
