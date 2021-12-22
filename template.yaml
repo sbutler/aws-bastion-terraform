@@ -593,6 +593,7 @@ Resources:
           env:
             shell: bash
             variables:
+              TERRAFORM_VERSION: 1.1.2
               TF_INPUT: "false"
               TF_IN_AUTOMATION: "true"
               TF_CLI_ARGS: "-no-color"
@@ -601,6 +602,13 @@ Resources:
               runtime-versions:
                 python: 3.8
               commands:
+                - '[[ -e .local/bin ]] || mkdir -p .local/bin'
+                - 'export PATH="$CODEBUILD_SRC_DIR/.local/bin:$PATH"'
+                - |
+                  if [[ ! -e .local/bin/terraform ]]; then
+                    curl --silent --fail --location https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip | zcat > .local/bin/terraform
+                    chmod a+rx .local/bin/terraform
+                  fi
                 - 'git clone --depth 1 -b "$SOURCE_BRANCH" $SOURCE_URL $CODEBUILD_SRC_DIR/repo'
                 - 'chmod a+rx $CODEBUILD_SRC_DIR/repo/codebuild/bin/*'
                 - 'export TF_DATA_DIR="$CODEBUILD_SRC_DIR/.terraform"'

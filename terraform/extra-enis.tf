@@ -169,7 +169,7 @@ locals {
 
 module "lambda_addExtraENIs" {
     source  = "terraform-aws-modules/lambda/aws"
-    version = "2.27.1"
+    version = "2.28.0"
 
     function_name = "${local.name_prefix}addExtraENIs"
     description   = "Add extra ENIs to a bastion instance."
