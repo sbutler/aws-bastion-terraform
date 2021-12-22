@@ -19,6 +19,7 @@ packages:
     - sudo
     - wget
     - vim
+    - yum-plugin-post-transaction-actions
 
 bootcmd:
     - [ cloud-init-per, once, pie-install-epel, amazon-linux-extras, install, epel ]

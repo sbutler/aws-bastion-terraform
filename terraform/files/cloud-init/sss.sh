@@ -158,22 +158,70 @@ illinois_log "enabling and start sssd"
 systemctl enable sssd
 systemctl restart sssd
 
+illinois_log "hacking ec2-instance-connect to fix sshd_config"
+illinois_write_file /usr/local/bin/illinois-fix-eic root:root 0700 << "EOF"
+#!/bin/bash
+
+AUTH_KEYS_CMD="AuthorizedKeysCommand /opt/aws/bin/eic_run_authorized_keys %u %f"
+AUTH_KEYS_USR="AuthorizedKeysCommandUser ec2-instance-connect"
+
+tmpfiles=()
+finish () {
+    set +e
+    for f in "${tmpfiles[@]}"; do
+        rm -fr -- "$f"
+    done
+}
+trap finish EXIT
+
+cfg_file=$(mktemp -t sshd_config.XXXXXXXX); tmpfiles+=("$cfg_file")
+cp /etc/ssh/sshd_config "$cfg_file"
+
+cfg_main="$(sed -re '/^\s*Match\s+/Q' "$cfg_file")"
+
+restart_sshd=no
+if ! echo "$cfg_main" | egrep -q '^\s*AuthorizedKeysCommand\s+'; then
+    if ! echo "$cfg_main" | egrep -q '^\s*AuthorizedKeysCommandUser\s+'; then
+        logger --tag illinois-fix-eic --priority local3.info --stderr -- "adding $AUTH_KEYS_USR"
+        sed -i -re "/^\s*# Example of overriding settings on a per-user basis/i $AUTH_KEYS_USR" "$cfg_file"
+    fi
+
+    logger --tag illinois-fix-eic --priority local3.info --stderr -- "adding $AUTH_KEYS_CMD"
+    sed -i -re "/^\s*# Example of overriding settings on a per-user basis/i $AUTH_KEYS_CMD" "$cfg_file"
+    restart_sshd=yes
+fi
+
+if [[ $restart_sshd = "yes" ]]; then
+    if ! sshd -t -f "$cfg_file"; then
+        logger --tag illinois-fix-eic --priority local3.err --stderr --  "unable to validate sshd_config"
+        exit 1
+    fi
+    cp /etc/ssh/sshd_config /etc/ssh/sshd_config.illinois-fix-eic
+    cp "$cfg_file" /etc/ssh/sshd_config
+    chown root:root /etc/ssh/sshd_config
+    chmod 0600 /etc/ssh/sshd_config
+
+    logger --tag illinois-fix-eic --priority local3.info --stderr -- "restarting sshd"
+    systemctl restart sshd
+fi
+EOF
+illinois_write_file /etc/yum/post-actions/illinois-fix-eic.action << EOF
+ec2-instance-connect:install:/usr/local/bin/illinois-fix-eic
+ec2-instance-connect:update:/usr/local/bin/illinois-fix-eic
+EOF
+
 illinois_log "configuring sshd for using sss authorized keys"
 
 cfg_file=$(mktemp -t sshd_config.XXXXXXXX); tmpfiles+=("$cfg_file")
 cp /etc/ssh/sshd_config "$cfg_file"
 restart_sshd=no
-if ! egrep -q '^\s*AuthorizedKeysCommandUser\s+(\S+)' "$cfg_file"; then
-    illinois_log "adding AuthorizedKeysCommandUser nobody"
-    sed -re '/^\s*# Example of overriding settings on a per-user basis/i AuthorizedKeysCommandUser nobody' "$cfg_file"
-    restart_sshd=yes
-fi
 if ! egrep -q '^\s*# ADDED BY SSS CONFIGURATION' "$cfg_file"; then
     illinois_log "adding sss authorized keys for domain users"
     cat >> "$cfg_file" <<EOF
 
 # ADDED BY SSS CONFIGURATION
 Match Group "domain users"
+    AuthorizedKeysCommandUser nobody
     AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
 EOF
     restart_sshd=yes
@@ -184,6 +232,7 @@ if [[ $restart_sshd = "yes" ]]; then
         illinois_log err "unable to validate sshd_config"
         exit 1
     fi
+    cp /etc/ssh/sshd_config /etc/ssh/sshd_config.illinois-sss
     cp "$cfg_file" /etc/ssh/sshd_config
     chown root:root /etc/ssh/sshd_config
     chmod 0600 /etc/ssh/sshd_config
