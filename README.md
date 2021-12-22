@@ -279,6 +279,26 @@ shells are not closed.
 
 Default: `900`.
 
+### login_banner (string)
+
+Message to display before a user logs into the bastion host. CIS recommends
+this be set to something warning the user about unauthorized access. This
+value is written to `/etc/issue` and `/etc/issue.net`.
+
+Default:
+
+```
+====================================================================
+| This system is for the use of authorized users only.  Usage of   |
+| this system may be monitored and recorded by system personnel.   |
+|                                                                  |
+| Anyone using this system expressly consents to such monitoring   |
+| and is advised that if such monitoring reveals possible          |
+| evidence of criminal activity, system personnel may provide the  |
+| evidence from such monitoring to law enforcement officials.      |
+====================================================================
+```
+
 ### public_subnets (list of strings)
 
 List of public subnet names or IDs where the primary network interface will be

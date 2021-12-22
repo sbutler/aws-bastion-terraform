@@ -94,6 +94,13 @@ write_file /etc/opt/illinois/cloud-init/ossec.conf << "EOF"
 ossec_whitelists_path="${ossec_whitelists_path}"
 EOF
 
+write_file /etc/issue << "EOF"
+${login_banner}
+EOF
+write_file /etc/issue.net << "EOF"
+${login_banner}
+EOF
+
 
 if ! egrep -q '^\s*root:' /etc/aliases; then
     echo "root: ${contact}" >> /etc/aliases

@@ -42,10 +42,11 @@ data "cloudinit_config" "bastion_userdata" {
         content      = templatefile(
             "templates/bastion-cloud-init-configscript.sh",
             {
-                region      = data.aws_region.current.name
-                contact     = var.contact
-                asg_name    = local.asg_name
-                prompt_name = local.name
+                region       = data.aws_region.current.name
+                contact      = var.contact
+                asg_name     = local.asg_name
+                prompt_name  = local.name
+                login_banner = var.login_banner
 
                 sharedfs_id                = aws_efs_file_system.sharedfs.id
                 sharedfs_home_uofi_id      = aws_efs_access_point.sharedfs_home_uofi.id

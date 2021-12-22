@@ -72,30 +72,6 @@ if ! egrep -q '^auth\s+required\s+pam_wheel.so' /etc/pam.d/su; then
     sed -i.illinois-cis -re 's/^#(auth\s+required\s+pam_wheel.so\s+use_uid)$/auth            required        pam_wheel.so use_uid group=wheel/' /etc/pam.d/su
 fi
 
-illinois_log "setting login banners"
-illinois_write_file /etc/issue <<HERE
-====================================================================
-| This system is for the use of authorized users only.  Usage of   |
-| this system may be monitored and recorded by system personnel.   |
-|                                                                  |
-| Anyone using this system expressly consents to such monitoring   |
-| and is advised that if such monitoring reveals possible          |
-| evidence of criminal activity, system personnel may provide the  |
-| evidence from such monitoring to law enforcement officials.      |
-====================================================================
-HERE
-illinois_write_file /etc/issue.net <<HERE
-====================================================================
-| This system is for the use of authorized users only.  Usage of   |
-| this system may be monitored and recorded by system personnel.   |
-|                                                                  |
-| Anyone using this system expressly consents to such monitoring   |
-| and is advised that if such monitoring reveals possible          |
-| evidence of criminal activity, system personnel may provide the  |
-| evidence from such monitoring to law enforcement officials.      |
-====================================================================
-HERE
-
 if [[ $cis_shell_timeout -gt 0 ]]; then
     illinois_log "setting shell timeouts"
     illinois_write_file /etc/profile.d/illinois-cis.sh <<HERE

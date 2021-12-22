@@ -97,6 +97,43 @@ variable "shell_idle_timeout" {
     }
 }
 
+variable "login_banner" {
+    type        = string
+    description = "Message to display before a user logs into the bastion host."
+    default = <<HERE
+====================================================================
+| This system is for the use of authorized users only.  Usage of   |
+| this system may be monitored and recorded by system personnel.   |
+|                                                                  |
+| Anyone using this system expressly consents to such monitoring   |
+| and is advised that if such monitoring reveals possible          |
+| evidence of criminal activity, system personnel may provide the  |
+| evidence from such monitoring to law enforcement officials.      |
+====================================================================
+HERE
+}
+
+variable "cloudinit_scripts" {
+    type        = list(string)
+    description = "List of script filenames or content to be run as part of the Cloud-Init process."
+    default     = []
+}
+
+variable "cloudinit_config" {
+    type        = string
+    description = "YAML Cloud-Init config that will be merged with the default configs."
+    default     = null
+
+    validation {
+        condition     = var.cloudinit_config == null || can(regex("^#cloud-config\\s*\\n", var.cloudinit_config))
+        error_message = "Cloud-Init config must begin with '#cloud-config'."
+    }
+}
+
+# =========================================================
+# Networking
+# =========================================================
+
 variable "public_subnets" {
     type        = list(string)
     description = "Subnet names for public access where the primary IP will be."
@@ -147,19 +184,3 @@ variable "extra_efs" {
     }
 }
 
-variable "cloudinit_scripts" {
-    type        = list(string)
-    description = "List of script filenames or content to be run as part of the Cloud-Init process."
-    default     = []
-}
-
-variable "cloudinit_config" {
-    type        = string
-    description = "YAML Cloud-Init config that will be merged with the default configs."
-    default     = null
-
-    validation {
-        condition     = var.cloudinit_config == null || can(regex("^#cloud-config\\s*\\n", var.cloudinit_config))
-        error_message = "Cloud-Init config must begin with '#cloud-config'."
-    }
-}
