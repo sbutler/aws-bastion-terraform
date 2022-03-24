@@ -69,6 +69,7 @@ locals {
         "s3-download.sh"   = { content_type = "text/x-sh" }
         "ssh.sh"           = { content_type = "text/x-sh" }
         "sss.sh"           = { content_type = "text/x-sh" }
+        "swap.sh"          = { content_type = "text/x-sh" }
         "yumcron.yml"      = { content_type = "text/yaml" }
     }
 
