@@ -147,7 +147,7 @@ variable "internal_subnets" {
 variable "extra_enis" {
     type        = list(object({
                     subnets      = list(string)
-                    description  = optional(string)
+                    description  = optional(string, "")
                     prefix_lists = list(string)
                 }))
     description = "List of extra ENIs to attach to the bastion host. You can configure what routes this ENI is used for by provising prefix list names or IDs and/or VPC IDs."
@@ -168,7 +168,7 @@ variable "extra_efs" {
     type        = map(object({
         filesystem_id = string
         mount_target  = optional(string)
-        options       = optional(string)
+        options       = optional(string, "tls,noresvport")
     }))
     description = "Map of extra EFS's to mount on the bastion host. The key is used as the name for the default mount point (/mnt/$name), and must not start with 'bastion-'."
     default     = {}

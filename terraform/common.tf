@@ -96,10 +96,10 @@ locals {
     has_falcon_sensor              = local.falcon_sensor_package_bucket != null && local.falcon_sensor_package_key != null
     falcon_sensor_parameter_prefix = "${local.name}/falcon-sensor/"
 
-    extra_efs = { for k, v in var.extra_efs : k => defaults(v, {
-        mount_target = "/mnt/${k}"
-        options      = "tls,noresvport"
-    }) }
+    extra_efs = { for k, v in var.extra_efs : k => merge(
+        v,
+        { mount_target = v.mount_target == null ? "/mnt/${k}" : v.mount_target }
+    ) }
 
     loggroup_prefix          = "${local.name}/"
     metrics_namespace        = "${local.name}"

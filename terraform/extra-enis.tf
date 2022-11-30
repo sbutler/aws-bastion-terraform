@@ -147,9 +147,7 @@ locals {
     extra_enis_name = "${local.name} Extra ENI"
 
     extra_enis = [ for o_idx, o in var.extra_enis : merge(
-        defaults(o, {
-            description = ""
-        }),
+        o,
         {
             subnet_ids = { for v_idx, v in o.subnets : data.aws_subnet.extra_enis["${o_idx}.${v_idx}"].availability_zone => data.aws_subnet.extra_enis["${o_idx}.${v_idx}"].id }
             prefix_list_ids = [ for v_idx, v in o.prefix_lists : data.aws_ec2_managed_prefix_list.extra_enis["${o_idx}.${v_idx}"].id ]
@@ -169,7 +167,7 @@ locals {
 
 module "lambda_addExtraENIs" {
     source  = "terraform-aws-modules/lambda/aws"
-    version = "2.35.1"
+    version = "4.7.1"
 
     function_name = "${local.name_prefix}addExtraENIs"
     description   = "Add extra ENIs to a bastion instance."

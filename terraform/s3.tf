@@ -83,19 +83,11 @@ locals {
 
 resource "aws_s3_bucket" "assets" {
     bucket_prefix = "${local.name_prefix}assets-"
+}
 
-    acl = "private"
-    versioning {
-        enabled = true
-    }
-    server_side_encryption_configuration {
-        rule {
-            apply_server_side_encryption_by_default {
-                # Can't use KMS b/c we are using plain URLs and not signed URLs
-                sse_algorithm = "AES256"
-            }
-        }
-    }
+resource "aws_s3_bucket_acl" "assets" {
+    bucket = aws_s3_bucket.assets.bucket
+    acl    = "private"
 }
 
 resource "aws_s3_bucket_public_access_block" "assets" {
@@ -112,12 +104,38 @@ resource "aws_s3_bucket_policy" "assets" {
     policy = data.aws_iam_policy_document.assets.json
 }
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "assets" {
+    bucket = aws_s3_bucket.assets.bucket
+
+    rule {
+        apply_server_side_encryption_by_default {
+            # Can't use KMS b/c we are using plain URLs and not signed URLs
+            sse_algorithm = "AES256"
+        }
+    }
+}
+
+resource "aws_s3_bucket_versioning" "assets" {
+    bucket = aws_s3_bucket.assets.bucket
+
+    versioning_configuration {
+        status = "Enabled"
+    }
+}
+
 # =========================================================
 # Resources: cloud-init
 # =========================================================
 
-resource "aws_s3_bucket_object" "assets_cloudinit" {
-    for_each = local.assets_cloudinit
+resource "aws_s3_object" "assets_cloudinit" {
+    for_each   = local.assets_cloudinit
+    depends_on = [
+        aws_s3_bucket_acl.assets,
+        aws_s3_bucket_public_access_block.assets,
+        aws_s3_bucket_policy.assets,
+        aws_s3_bucket_server_side_encryption_configuration.assets,
+        aws_s3_bucket_versioning.assets,
+    ]
 
     bucket = aws_s3_bucket.assets.bucket
     key    = "cloud-init/${each.key}"
@@ -128,8 +146,15 @@ resource "aws_s3_bucket_object" "assets_cloudinit" {
     etag         = filemd5("${path.module}/files/cloud-init/${each.key}")
 }
 
-resource "aws_s3_bucket_object" "assets_extra_scripts" {
-    for_each = local.assets_extra_scripts
+resource "aws_s3_object" "assets_extra_scripts" {
+    for_each   = local.assets_extra_scripts
+    depends_on = [
+        aws_s3_bucket_acl.assets,
+        aws_s3_bucket_public_access_block.assets,
+        aws_s3_bucket_policy.assets,
+        aws_s3_bucket_server_side_encryption_configuration.assets,
+        aws_s3_bucket_versioning.assets,
+    ]
 
     bucket = aws_s3_bucket.assets.bucket
     key    = "cloud-init/extra/${each.key}"
@@ -140,8 +165,15 @@ resource "aws_s3_bucket_object" "assets_extra_scripts" {
     etag         = md5(each.value)
 }
 
-resource "aws_s3_bucket_object" "assets_extra_config" {
-    count = local.assets_extra_config == null ? 0 : 1
+resource "aws_s3_object" "assets_extra_config" {
+    count      = local.assets_extra_config == null ? 0 : 1
+    depends_on = [
+        aws_s3_bucket_acl.assets,
+        aws_s3_bucket_public_access_block.assets,
+        aws_s3_bucket_policy.assets,
+        aws_s3_bucket_server_side_encryption_configuration.assets,
+        aws_s3_bucket_versioning.assets,
+    ]
 
     bucket = aws_s3_bucket.assets.bucket
     key    = "cloud-init/extra/config.yml"

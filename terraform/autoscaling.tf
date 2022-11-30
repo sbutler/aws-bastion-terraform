@@ -31,9 +31,9 @@ data "aws_ip_ranges" "ec2_instance_connect" {
 
 data "cloudinit_config" "bastion_userdata" {
     depends_on = [
-        aws_s3_bucket_object.assets_cloudinit,
-        aws_s3_bucket_object.assets_extra_scripts,
-        aws_s3_bucket_object.assets_extra_config,
+        aws_s3_object.assets_cloudinit,
+        aws_s3_object.assets_extra_scripts,
+        aws_s3_object.assets_extra_config,
     ]
 
     part {

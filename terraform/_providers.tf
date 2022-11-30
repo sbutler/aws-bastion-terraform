@@ -1,9 +1,9 @@
 terraform {
-    required_version = "~> 1.1.2"
+    required_version = "~> 1.3.5"
     required_providers {
         aws = {
             source  = "hashicorp/aws"
-            version = "~> 3.74"
+            version = "~> 4.42"
         }
         cloudinit = {
             source  = "hashicorp/cloudinit"
@@ -11,11 +11,11 @@ terraform {
         }
         time = {
             source  = "hashicorp/time"
-            version = "~> 0.7.2"
+            version = "~> 0.9.1"
         }
         null = {
             source  = "hashicorp/null"
-            version = "~> 3.1"
+            version = "~> 3.2.1"
         }
     }
 
@@ -30,8 +30,6 @@ terraform {
         region = "us-east-2"
     }
     */
-
-    experiments = [ module_variable_optional_attrs ]
 }
 
 /* CHANGEME: Uncomment to use as a standalone
