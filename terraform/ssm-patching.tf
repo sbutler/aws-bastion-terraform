@@ -110,12 +110,12 @@ resource "aws_ssm_patch_group" "bastion" {
 # =========================================================
 
 resource "aws_ssm_maintenance_window" "bastion_scanning" {
-    name              = local.asg_name
+    name              = "${local.asg_name}-scanning"
     description       = "Daily baseline scanning of Bastion servers."
     schedule          = var.ssm_maintenance_window_scanning
     schedule_timezone = "America/Chicago"
 
-    duration = 1
+    duration = 2
     cutoff   = 1
 
     allow_unassociated_targets = false
@@ -176,7 +176,7 @@ resource "aws_ssm_maintenance_window_task" "bastion_scanning" {
 # =========================================================
 
 resource "aws_ssm_maintenance_window" "bastion_patching" {
-    name              = local.asg_name
+    name              = "${local.asg_name}-patching"
     description       = "Weekly baseline patching of Bastion servers."
     schedule          = var.ssm_maintenance_window_patching
     schedule_timezone = "America/Chicago"
