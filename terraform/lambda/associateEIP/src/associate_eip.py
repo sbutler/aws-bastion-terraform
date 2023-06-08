@@ -65,23 +65,24 @@ def lambda_handler(event, context):
         event (dict): event data.
         context (obj): Lambda context.
     """
+    # pylint: disable=unused-argument
     logger.debug('Triggered by event: %(event)r', {'event': event})
 
     event_source = event.get('source')
     if event_source != 'bastion.aws.illinois.edu':
         logger.error('Unknown event source: %(source)r', {'source': event_source})
-        return
+        return None
 
-    event_detailType = event.get('detail-type')
-    if event_detailType != 'Bastion Initialization Status':
-        logger.error('Unknown event detailType: %(type)r', {'type': event_detailType})
-        return
+    event_detail_type = event.get('detail-type')
+    if event_detail_type != 'Bastion Initialization Status':
+        logger.error('Unknown event detailType: %(type)r', {'type': event_detail_type})
+        return None
 
     event_detail = event.get('detail', {})
     instance_id = event_detail.get('instanceID')
     if not instance_id:
         logger.error('No instanceID in the event detail')
-        return
+        return None
 
     eni_id = get_instance_primary_interface(instance_id)
     logger.info('Associating %(allocation_id)s to ENI %(eni_id)s', {

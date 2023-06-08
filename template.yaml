@@ -600,7 +600,7 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.8
+                python: 3.10
               commands:
                 - '[[ -e .local/bin ]] || mkdir -p .local/bin'
                 - 'export PATH="$CODEBUILD_SRC_DIR/.local/bin:$PATH"'
@@ -625,7 +625,7 @@ Resources:
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
         Type: LINUX_CONTAINER
-        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        Image: aws/codebuild/standard:6.0
         EnvironmentVariables:
           - { Name: AWS_REGION, Value: !Ref "AWS::Region" }
           - { Name: SOURCE_URL, Value: !Ref SourceURL }
@@ -702,7 +702,7 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.8
+                python: 3.10
               commands:
                 - '[[ -e .local/bin ]] || mkdir -p .local/bin'
                 - 'export PATH="$CODEBUILD_SRC_DIR/.local/bin:$PATH"'
@@ -726,7 +726,7 @@ Resources:
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
         Type: LINUX_CONTAINER
-        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        Image: aws/codebuild/standard:6.0
         EnvironmentVariables:
           - { Name: AWS_REGION, Value: !Ref "AWS::Region" }
           - { Name: SOURCE_URL, Value: !Ref SourceURL }

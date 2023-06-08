@@ -1,6 +1,6 @@
 REQUIREMENTS = src/requirements.txt
 SOURCES = src/add_extra_enis.py
-PYTHON = python3.8
+PYTHON = python3.10
 
 .PHONY: clean build lint dist .venv .deps .src
 

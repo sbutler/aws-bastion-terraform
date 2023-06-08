@@ -96,12 +96,12 @@ def add_extra_eni(instance_id, region_name, config_idx, config):
         # Cleanup the ENI and re-raise
         ec2_clnt.delete_network_interface(NetworkInterfaceId=eni_id)
         raise
-    else:
-        attachment_id = resp['AttachmentId']
-        logger.debug('ENI %(eni)s attached: %(attachment)s', {
-            'eni': eni_id,
-            'attachment': attachment_id,
-        })
+
+    attachment_id = resp['AttachmentId']
+    logger.debug('ENI %(eni)s attached: %(attachment)s', {
+        'eni': eni_id,
+        'attachment': attachment_id,
+    })
 
     try:
         logger.debug('[ENI:%(eni)s] Setting delete on instance terminate', {'eni': eni_id})
@@ -135,6 +135,7 @@ def lambda_handler(event, context):
     Returns:
         List[str]: List of ENI IDs.
     """
+    # pylint: disable=unused-argument
     logger.debug('Triggered by event: %(event)r', {'event': event})
 
     event_source = event.get('source')
@@ -142,9 +143,9 @@ def lambda_handler(event, context):
         logger.error('Unknown event source: %(source)r', {'source': event_source})
         return []
 
-    event_detailType = event.get('detail-type')
-    if event_detailType != 'Bastion Initialization Status':
-        logger.error('Unknown event detailType: %(type)r', {'type': event_detailType})
+    event_detail_type = event.get('detail-type')
+    if event_detail_type != 'Bastion Initialization Status':
+        logger.error('Unknown event detailType: %(type)r', {'type': event_detail_type})
         return []
 
     event_detail = event.get('detail', {})

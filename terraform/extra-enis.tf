@@ -172,7 +172,7 @@ module "lambda_addExtraENIs" {
     function_name = "${local.name_prefix}addExtraENIs"
     description   = "Add extra ENIs to a bastion instance."
     handler       = "add_extra_enis.lambda_handler"
-    runtime       = "python3.8"
+    runtime       = "python3.10"
     timeout       = 30
 
     environment_variables = {
