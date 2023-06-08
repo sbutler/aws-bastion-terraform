@@ -109,7 +109,6 @@ https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/efs.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/extra-enis.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ec2logs.yml
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/resolv.yml
-https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/yumcron.yml
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ssh.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/sss.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/duo.sh
@@ -258,7 +257,10 @@ resource "aws_launch_template" "bastion" {
         resource_type = "instance"
         tags = merge(
             local.default_tags,
-            { Name = local.instance_name },
+            {
+                Name       = local.instance_name
+                PatchGroup = aws_ssm_patch_group.bastion.patch_group
+            },
         )
     }
 

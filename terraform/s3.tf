@@ -70,7 +70,6 @@ locals {
         "ssh.sh"           = { content_type = "text/x-sh" }
         "sss.sh"           = { content_type = "text/x-sh" }
         "swap.sh"          = { content_type = "text/x-sh" }
-        "yumcron.yml"      = { content_type = "text/yaml" }
     }
 
     assets_extra_scripts = { for idx, s in var.cloudinit_scripts : format("script-%03d.sh", idx) => (can(regex("\n", s)) ? s : file(s))}

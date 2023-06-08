@@ -184,3 +184,18 @@ variable "extra_efs" {
     }
 }
 
+# =========================================================
+# Patching
+# =========================================================
+
+variable "ssm_maintenance_window_scanning" {
+    type        = string
+    description = "When to start the 1hour maintenance window for baseline scanning."
+    default     = "cron(30 4 ? * SUN-FRI *)"
+}
+
+variable "ssm_maintenance_window_patching" {
+    type        = string
+    description = "When to start the 3hour maintenance window for baseline patching."
+    default     = "cron(30 4 ? * SAT *)"
+}
