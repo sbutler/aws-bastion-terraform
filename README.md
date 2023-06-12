@@ -299,6 +299,24 @@ Default:
 ====================================================================
 ```
 
+### allowed_cidrs (map of objects)
+
+Map of CIDRs allowed to connect to the bastion instance. The key of the map is
+used in the security group description (to help identify why the IP is added)
+and the value of the map is an object with fields `ipv4` and `ipv6`. For each
+field you specify a list of string CIDRs.
+
+Default:
+
+```
+{
+    all = {
+        ipv4 = [ "0.0.0.0/0" ]
+        ipv6 = [ "::/0" ]
+    }
+}
+```
+
 ### public_subnets (list of strings)
 
 List of public subnet names or IDs where the primary network interface will be

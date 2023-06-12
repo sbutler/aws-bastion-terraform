@@ -134,6 +134,15 @@ variable "cloudinit_config" {
 # Networking
 # =========================================================
 
+variable "allowed_cidrs" {
+    type        = map(object({
+                    ipv4 = optional(list(string))
+                    ipv6 = optional(list(string))
+                }))
+    description = "CIDRs allowed to SSH to the bastion host."
+    default     = { all = { ipv4 = [ "0.0.0.0/0" ], ipv6 = [ "::/0" ] } }
+}
+
 variable "public_subnets" {
     type        = list(string)
     description = "Subnet names for public access where the primary IP will be."

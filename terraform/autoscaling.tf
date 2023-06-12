@@ -166,15 +166,18 @@ resource "aws_security_group" "bastion" {
     description = "Bastion host group."
     vpc_id      = local.vpc_id
 
-    ingress {
-        description = "SSH"
+    dynamic "ingress" {
+        for_each = var.allowed_cidrs
+        content {
+            description = "SSH (${ingress.key})"
 
-        protocol  = "tcp"
-        from_port = 22
-        to_port   = 22
+            protocol  = "tcp"
+            from_port = 22
+            to_port   = 22
 
-        cidr_blocks      = [ "0.0.0.0/0" ]
-        ipv6_cidr_blocks = [ "::/0" ]
+            cidr_blocks      = ingress.value.ipv4
+            ipv6_cidr_blocks = ingress.value.ipv6
+        }
     }
 
     dynamic "ingress" {
