@@ -180,6 +180,17 @@ resource "aws_security_group" "bastion" {
         }
     }
 
+    ingress {
+        description = "SSH (${local.vpc_id})"
+
+        protocol  = "tcp"
+        from_port = 22
+        to_port   = 22
+
+        cidr_blocks      = [ data.aws_vpc.main.cidr_block ]
+        ipv6_cidr_blocks = data.aws_vpc.main.ipv6_cidr_block == null ? null : [ data.aws_vpc.main.ipv6_cidr_block ]
+    }
+
     dynamic "ingress" {
         for_each = data.aws_ip_ranges.ec2_instance_connect.cidr_blocks
 

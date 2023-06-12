@@ -64,6 +64,10 @@ data "aws_subnet" "internal" {
     }
 }
 
+data "aws_vpc" "main" {
+    id = local.vpc_id
+}
+
 data "aws_vpc_endpoint" "s3" {
     vpc_id       = local.vpc_id
     service_name = "com.amazonaws.${local.region_name}.s3"
