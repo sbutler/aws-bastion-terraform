@@ -186,7 +186,7 @@ The two group parameters are a comma separated list of AD groups that should
 have admin access or allowed shell access. When specifying multiple groups do
 not include any extra spaces before or after the group name.
 
-Corrent Format: `Group 1,Group2`. Wrong Format: `Group 1, Group2`.
+Correct Format: `Group 1,Group2`. Wrong Format: `Group 1, Group2`.
 
 - `admin-groups`: AD groups allowed to SSH and use sudo to become root. This
   parameter is required.
@@ -417,6 +417,26 @@ automatically add an additional line at the end of your config to make sure it
 merges properly with the default configs.
 
 Default: `null`
+
+*CodeBuild Deployment:* this parameter is not available.
+
+### ssm_maintenance_window_scanning (string)
+
+An SSM Maintenance Window schedule (usually cron style) that determines when
+SSM will scan an instance for patch compliance. This is only the scanning
+operation, patching will not be performed.
+
+Default: `"cron(30 4 ? * SUN-FRI *)"`
+
+*CodeBuild Deployment:* this parameter is not available.
+
+### ssm_maintenance_window_patching (string)
+
+An SSM Maintenance Window schedule (usually cron style) that determines when
+SSM will patch and possibly reboot an instance. Patching is done in the 3 hour
+period starting at this schedule expression.
+
+Default: `"cron(30 4 ? * SAT *)"`
 
 *CodeBuild Deployment:* this parameter is not available.
 
