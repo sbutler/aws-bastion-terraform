@@ -38,6 +38,12 @@ export PATH="$BASE_DIR/bin:$PATH"
 [[ -z $TF_VAR_extra_enis ]] && unset TF_VAR_extra_enis
 [[ -z $TF_VAR_extra_efs ]] && unset TF_VAR_extra_efs
 
+if [[ -z $TF_VAR_allowed_cidrs_codebuild ]]; then
+    unset TF_VAR_allowed_cidrs_codebuild
+else
+    export TF_VAR_allowed_cidrs_codebuild="$(_make_hcl_list "$TF_VAR_allowed_cidrs_codebuild")"
+fi
+
 if [[ -z $TF_VAR_public_subnets ]]; then
     unset TF_VAR_public_subnets
 else

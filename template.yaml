@@ -97,6 +97,12 @@ Parameters:
     Default: 900
     MinValue: 0
 
+  AllowedCIDRs:
+    Type: CommaDelimitedList
+    Description: List of IPv4 CIDRs allowed to SSH to the bastion host.
+    Default: "0.0.0.0/0"
+    AllowedPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+/\\d+$"
+    ConstraintDescription: "Values must be in CIDR form: XXX.XXX.XXX.XXX/YY"
   PublicSubnets:
     Type: List<AWS::EC2::Subnet::Id>
     Description: Subnet names for public access where the primary IP will be.
@@ -141,6 +147,7 @@ Metadata:
           - ShellIdleTimeout
       - Label: Networking
         Parameters:
+          - AllowedCIDRs
           - PublicSubnets
           - InternalSubnets
           - ExtraENIs
@@ -647,6 +654,10 @@ Resources:
           - { Name: TF_VAR_falcon_sensor_package, Value: !Ref FalconSensorPackage }
           - { Name: TF_VAR_shell_idle_timeout, Value: !Ref ShellIdleTimeout }
 
+          - Name: TF_VAR_allowed_cidrs
+            Value: "{}"
+          - Name: TF_VAR_allowed_cidrs_codebuild
+            Value: !Join [ ",", !Ref AllowedCIDRs ]
           - Name: TF_VAR_public_subnets
             Value: !Join [ ",", !Ref PublicSubnets ]
           - Name: TF_VAR_internal_subnets
@@ -748,6 +759,10 @@ Resources:
           - { Name: TF_VAR_falcon_sensor_package, Value: !Ref FalconSensorPackage }
           - { Name: TF_VAR_shell_idle_timeout, Value: !Ref ShellIdleTimeout }
 
+          - Name: TF_VAR_allowed_cidrs
+            Value: "{}"
+          - Name: TF_VAR_allowed_cidrs_codebuild
+            Value: !Join [ ",", !Ref AllowedCIDRs ]
           - Name: TF_VAR_public_subnets
             Value: !Join [ ",", !Ref PublicSubnets ]
           - Name: TF_VAR_internal_subnets

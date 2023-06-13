@@ -143,6 +143,12 @@ variable "allowed_cidrs" {
     default     = { all = { ipv4 = [ "0.0.0.0/0" ], ipv6 = [ "::/0" ] } }
 }
 
+variable "allowed_cidrs_codebuild" {
+    type        = list(string)
+    description = "CIDRs allowed to SSH to the bastion host (only used for CodeBuild deployments)."
+    default     = null
+}
+
 variable "public_subnets" {
     type        = list(string)
     description = "Subnet names for public access where the primary IP will be."

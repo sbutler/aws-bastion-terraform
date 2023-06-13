@@ -317,6 +317,14 @@ Default:
 }
 ```
 
+### allowed_cidrs_codebuild (list of strings)
+
+This is the variable used when a CodeBuild deployment is done. **If you are
+using terraform directly then do not specify this value!** It is a list of IPv4
+CIDRs allowed to connect to the bastion instance.
+
+Default: `[]`
+
 ### public_subnets (list of strings)
 
 List of public subnet names or IDs where the primary network interface will be

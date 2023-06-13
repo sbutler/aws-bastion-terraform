@@ -180,6 +180,19 @@ resource "aws_security_group" "bastion" {
         }
     }
 
+    dynamic "ingress" {
+        for_each = var.allowed_cidrs_codebuild == null ? [] : [ var.allowed_cidrs_codebuild ]
+        content {
+            description = "SSH"
+
+            protocol  = "tcp"
+            from_port = 22
+            to_port   = 22
+
+            cidr_blocks = ingress.value
+        }
+    }
+
     ingress {
         description = "SSH (${local.vpc_id})"
 
