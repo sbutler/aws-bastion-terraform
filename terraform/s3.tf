@@ -85,8 +85,18 @@ resource "aws_s3_bucket" "assets" {
 }
 
 resource "aws_s3_bucket_acl" "assets" {
+    depends_on = [ aws_s3_bucket_ownership_controls.assets ]
+
     bucket = aws_s3_bucket.assets.bucket
     acl    = "private"
+}
+
+resource "aws_s3_bucket_ownership_controls" "assets" {
+    bucket = aws_s3_bucket.assets.bucket
+
+    rule {
+        object_ownership = "BucketOwnerPreferred"
+    }
 }
 
 resource "aws_s3_bucket_public_access_block" "assets" {
