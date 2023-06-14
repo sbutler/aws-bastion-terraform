@@ -146,13 +146,14 @@ for file in password-auth system-auth; do
             ln -s "${file}-illinois" "$pam_cfg_file"
         fi
     fi
+
+    illinois_log "fixing faillock in ${file}-illinois"
+    sed -i.illinois-sss -r \
+        -e '/^\s*auth\s+required\s+pam_faildelay\.so/a auth        required      pam_faillock.so preauth silent deny=5 unlock_time=900' \
+        -e '/^\s*auth\s+required\s+pam_deny\.so/i auth        [default=die]      pam_faillock.so authfail deny=5 unlock_time=900' \
+        -e '/^\s*auth\s+required\s+pam_faillock\.so/d' \
+        "/etc/pam.d/${file}-illinois"
 done
-illinois_log "fixing faillock in password-auth-illinois"
-sed -i.illinois-sss -r \
-    -e '/^\s*auth\s+required\s+pam_faildelay\.so/a auth        required      pam_faillock.so preauth silent deny=5 unlock_time=900' \
-    -e '/^\s*auth\s+required\s+pam_deny\.so/i auth        required      pam_faillock.so authfail deny=5 unlock_time=900' \
-    -e '/^\s*auth\s+required\s+pam_faillock\.so/d' \
-    /etc/pam.d/password-auth-illinois
 
 illinois_log "enabling and start sssd"
 systemctl enable sssd

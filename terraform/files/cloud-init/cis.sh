@@ -91,6 +91,7 @@ illinois_log "setting up journald"
 sed -i.illinois-cis -r \
     -e 's/^#?\s*Storage=.*/Storage=persistent/' \
     -e 's/^#?\s*Compress=.*/Compress=yes/' \
+    -e 's/^#?\s*ForwardToSyslog=.*/ForwardToSyslog=yes/' \
     /etc/systemd/journald.conf
 systemctl restart systemd-journald
 
