@@ -10,7 +10,6 @@ import os
 import boto3 #pylint: disable=import-error
 
 EXTRA_ENI_CONFIGS = json.loads(os.environ['EXTRA_ENI_CONFIGS'])
-EXTRA_ENI_SECURITY_GROUP_IDS = json.loads(os.environ['EXTRA_ENI_SECURITY_GROUP_IDS'])
 EXTRA_ENI_TAGS = [
     {'Key': k, 'Value': v}
     for k, v in json.loads(
@@ -72,10 +71,13 @@ def add_extra_eni(instance_id, region_name, config_idx, config):
     resp = ec2_clnt.create_network_interface(
         Description=description,
         SubnetId=subnet_id,
-        Groups=EXTRA_ENI_SECURITY_GROUP_IDS,
+        Groups=config['security_group_ids'],
         TagSpecifications=[{
             'ResourceType': 'network-interface',
-            'Tags': EXTRA_ENI_TAGS,
+            'Tags': EXTRA_ENI_TAGS + [{
+                'Key': 'Name',
+                'Value': config.get('name', 'Bastion Extra ENI'),
+            }],
         }]
     )
     eni_id = resp['NetworkInterface']['NetworkInterfaceId']
@@ -156,15 +158,22 @@ def lambda_handler(event, context):
 
     region_name = get_instance_region(instance_id)
     extra_eni_ids = []
-    for config_idx, config in enumerate(EXTRA_ENI_CONFIGS):
-        logger.debug('ENI Config #%(idx)d: %(config)r', {
+    for config_idx, (config_name, config) in enumerate(EXTRA_ENI_CONFIGS.items()):
+        logger.debug('ENI Config #%(idx)d: %(config_name)s=%(config)r', {
             'idx': config_idx,
+            'config_name': config_name,
             'config': config,
         })
         try:
             eni_id = add_extra_eni(instance_id, region_name, config_idx, config)
         except Exception: #pylint: disable=broad-except
-            logger.exception('Unable to create ENI #%(idx)d', {'idx': config_idx})
+            logger.exception(
+                'Unable to create ENI #%(idx)d (%(config_name)s)',
+                {
+                    'idx': config_idx,
+                    'config_name': config_name,
+                }
+            )
         else:
             extra_eni_ids.append(eni_id)
 

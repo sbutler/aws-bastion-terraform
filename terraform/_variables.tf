@@ -159,22 +159,34 @@ variable "internal_subnets" {
     description = "Subnet names to use for internal resources unreachable from outside the VPC."
 }
 
-variable "extra_enis" {
-    type        = list(object({
-                    subnets      = list(string)
-                    description  = optional(string, "")
-                    prefix_lists = list(string)
-                }))
-    description = "List of extra ENIs to attach to the bastion host. You can configure what routes this ENI is used for by provising prefix list names or IDs and/or VPC IDs."
-    default = []
+variable "extra_security_groups" {
+    type        = list(string)
+    description = "Extra security groups (name or ID) to add to the bastion instance. Default limit is 4 extra groups, but you can request an increase from AWS."
+    default     = []
 
     validation {
-        condition     = alltrue([ for o in var.extra_enis : length(o.subnets) > 0 ])
+        condition     = alltrue([ for g in var.extra_security_groups : length(g) > 0 ])
+        error_message = "The value cannot be empty."
+    }
+}
+
+variable "extra_enis" {
+    type        = map(object({
+                    subnets         = list(string)
+                    description     = optional(string, "")
+                    prefix_lists    = list(string)
+                    security_groups = optional(list(string), [])
+                }))
+    description = "List of extra ENIs to attach to the bastion host. You can configure what routes this ENI is used for by provising prefix list names or IDs."
+    default = {}
+
+    validation {
+        condition     = alltrue([ for o in values(var.extra_enis) : length(o.subnets) > 0 ])
         error_message = "You must specify a subnet name or ID for each availability zone."
     }
 
     validation {
-        condition     = alltrue([ for o in var.extra_enis : length(o.prefix_lists) > 0 ])
+        condition     = alltrue([ for o in values(var.extra_enis) : length(o.prefix_lists) > 0 ])
         error_message = "You must specify a prefix list name or ID for each ENI."
     }
 }

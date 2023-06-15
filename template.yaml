@@ -109,6 +109,10 @@ Parameters:
   InternalSubnets:
     Type: List<AWS::EC2::Subnet::Id>
     Description: Subnet names to use for internal resources unreachable from outside the VPC.
+  ExtraSecurityGroups:
+    Type: CommaDelimitedList
+    Description: List of security groups to associate with the primary interface. The default one includes ingress SSH and all egress traffic.
+    Default: ""
   ExtraENIs:
     Type: String
     Description: List of extra ENIs to attach to the bastion host (in HCL format). You can configure what routes this ENI is used for by provising prefix list names or IDs and/or VPC IDs.
@@ -150,6 +154,7 @@ Metadata:
           - AllowedCIDRs
           - PublicSubnets
           - InternalSubnets
+          - ExtraSecurityGroups
           - ExtraENIs
           - ExtraEFS
 
@@ -233,7 +238,6 @@ Resources:
                   - "ssm:*Tags*"
                 Resource:
                   - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ssh/*"
-                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/outputs/*"
               - Sid: KMSReadWrite
                 Effect: Allow
                 Action:
@@ -245,7 +249,6 @@ Resources:
                 Condition:
                   ArnLike:
                     "kms:EncryptionContext:PARAMETER_ARN":
-                      - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/outputs/*"
                       - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/ssh/*"
       Tags:
         - { Key: Service, Value: !Ref Service }
@@ -265,6 +268,7 @@ Resources:
             Action:
               - "ec2:DescribeAddresses*"
               - "ec2:DescribeImages"
+              - "ec2:DescribeInstanceTypes"
               - "ec2:DescribeLaunchTemplate*"
               - "ec2:DescribeManagedPrefixLists"
               - "ec2:DescribeNetworkInterfaces"
@@ -272,7 +276,7 @@ Resources:
               - "ec2:DescribeSecurityGroup*"
               - "ec2:DescribeStaleSecurityGroups"
               - "ec2:DescribeSubnets"
-              - "ec2:DescribeVpcEndpoint*"
+              - "ec2:DescribeVpc*"
               - "ec2:GetManagedPrefixList*"
 
               - "autoscaling:Describe*"
@@ -304,6 +308,27 @@ Resources:
               - "events:ListEventBuses"
               - "events:ListRule*"
               - "events:TestEventPattern"
+
+              - "ssm:DescribeAssociation*"
+              - "ssm:DescribeAvailablePatches"
+              - "ssm:DescribeDocument*"
+              - "ssm:DescribeEffective*"
+              - "ssm:DescribeInstance*"
+              - "ssm:DescribeMaintenanceWindow*"
+              - "ssm:DescribePatchBaselines"
+              - "ssm:DescribePatchGroup*"
+              - "ssm:DescribePatchProperties"
+              - "ssm:GetDefaultPatchBaseline"
+              - "ssm:GetDocument"
+              - "ssm:GetInventory*"
+              - "ssm:GetMaintenanceWindow*"
+              - "ssm:GetParameter*"
+              - "ssm:GetPatchBaseline*"
+              - "ssm:ListAssociation*"
+              - "ssm:ListDocument*"
+              - "ssm:ListInstanceAssociations"
+              - "ssm:ListInventoryEntries"
+              - "ssm:ListTagsForResource"
             Resource: '*'
   TerraformDeployReadWritePolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -316,11 +341,6 @@ Resources:
           - Sid: ReadWrite
             Effect: Allow
             Action:
-              - "ec2:AllocateAddress"
-              - "ec2:DisassociateAddress"
-              - "ec2:ModifyAddressAttribute"
-              - "ec2:ResetAddressAttribute"
-
               - "ec2:CreateLaunchTemplate*"
               - "ec2:DeleteLaunchTemplate*"
               - "ec2:ModifyLaunchTemplate"
@@ -371,6 +391,7 @@ Resources:
 
               - "s3:*"
               - "lambda:*"
+              - "ssm:*"
             Resource:
               - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:elastic-ip/*
               - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
@@ -410,6 +431,14 @@ Resources:
               - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}:*
               - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-*:*
 
+              - !Sub arn:aws:ssm:${AWS::Region}:*:document/*
+              - !Sub arn:aws:ssm:${AWS::Region}:*:patchbaseline/*
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:association/*
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:maintenancewindow/*
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/outputs/*
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:windowtarget/*
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:windowtask/*
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:task/*
             Condition:
               StringEqualsIfExists:
                 "aws:RequestTag/Project": !Ref "AWS::StackName"
@@ -419,6 +448,15 @@ Resources:
                 "ec2:InstanceProfile":
                   - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/${AWS::StackName}-*"
+
+          - Sid: EC2Global
+            Effect: Allow
+            Action:
+              - "ec2:AllocateAddress"
+              - "ec2:DisassociateAddress"
+              - "ec2:ModifyAddressAttribute"
+              - "ec2:ResetAddressAttribute"
+            Resource: "*"
 
           - Sid: LambdaEventSourceMappings
             Effect: Allow
@@ -461,6 +499,23 @@ Resources:
                   - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*
                   - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}:*
                   - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-*:*
+
+          - Sid: SSMReadWrite
+            Effect: Allow
+            Action:
+              - "ssm:CreateMaintenanceWindow"
+              - "ssm:CreatePatchBaseline"
+            Resource: "*"
+            Condition:
+              StringEqualsIfExists:
+                "aws:RequestTag/Project": !Ref "AWS::StackName"
+                "aws:ResourceTag/Project": !Ref "AWS::StackName"
+          - Sid: SSMGlobalReadWrite
+            Effect: Allow
+            Action:
+              - "ssm:AddTagsToResource"
+              - "ssm:RemoveTagsFromResource"
+            Resource: "*"
   TerraformDeploySecurityPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -555,6 +610,18 @@ Resources:
             Condition:
               Bool:
                 "kms:GrantIsForAWSResource": "true"
+          - Sid: KMSReadWrite
+            Effect: Allow
+            Action:
+              - "kms:Decrypt"
+              - "kms:Encrypt"
+              - "kms:GenerateDataKey"
+            Resource:
+              - !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+            Condition:
+              ArnLike:
+                "kms:EncryptionContext:PARAMETER_ARN":
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/outputs/*"
   TerraformDestroyManagedPolicy:
     Condition: HasDestroy
     Type: AWS::IAM::ManagedPolicy
@@ -662,6 +729,8 @@ Resources:
             Value: !Join [ ",", !Ref PublicSubnets ]
           - Name: TF_VAR_internal_subnets
             Value: !Join [ ",", !Ref InternalSubnets ]
+          - Name: TF_VAR_extra_security_groups
+            Value: !Join [ ",", !Ref ExtraSecurityGroups ]
           - { Name: TF_VAR_extra_enis, Value: !Ref ExtraENIs }
           - { Name: TF_VAR_extra_efs, Value: !Ref ExtraEFS }
       TimeoutInMinutes: 60

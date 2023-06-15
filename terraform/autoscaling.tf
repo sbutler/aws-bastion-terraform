@@ -24,6 +24,15 @@ data "aws_ip_ranges" "ec2_instance_connect" {
     services = [ "ec2_instance_connect" ]
 }
 
+data "aws_security_group" "bastion_extra" {
+    for_each = toset(var.extra_security_groups)
+
+    id   = can(regex("^sg-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? each.value : null
+    name = can(regex("^sg-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? null : each.value
+
+    vpc_id = local.vpc_id
+}
+
 
 # =========================================================
 # Data: Cloud Init
@@ -87,7 +96,7 @@ data "cloudinit_config" "bastion_userdata" {
                 extra_enis_prefix_list_ids = join(" ", formatlist(
                     "[eth%d]='%s'",
                     [ for i in range(length(local.extra_enis)) : i + 1 ],
-                    [ for o in local.extra_enis : join(" ", o.prefix_list_ids) ]
+                    [ for o in values(local.extra_enis) : join(" ", o.prefix_list_ids) ]
                 ))
 
                 falcon_sensor_package  = var.falcon_sensor_package == null ? "" : var.falcon_sensor_package
@@ -263,7 +272,10 @@ resource "aws_launch_template" "bastion" {
     }
 
     key_name               = var.key_name
-    vpc_security_group_ids = [ aws_security_group.bastion.id ]
+    vpc_security_group_ids = concat(
+        [ aws_security_group.bastion.id ],
+        [ for s in values(data.aws_security_group.bastion_extra) : s.id ],
+    )
     user_data              = data.cloudinit_config.bastion_userdata.rendered
     update_default_version = true
 

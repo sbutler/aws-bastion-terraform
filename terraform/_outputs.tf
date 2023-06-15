@@ -121,6 +121,36 @@ resource "aws_ssm_parameter" "bastion_security_group_outputs" {
     overwrite = true
 }
 
+output "bastion_extra_enis_default_security_groups" {
+    value = { for s_name, s in aws_security_group.extra_enis_default : s_name => {
+        arn  = s.arn
+        id   = s.id
+        name = s.name
+    }}
+}
+
+resource "aws_ssm_parameter" "bastion_extra_enis_default_security_group_outputs" {
+    for_each = zipmap(
+        flatten([ for o_name in keys(var.extra_enis) : [
+            "${o_name}:arn",
+            "${o_name}:id",
+            "${o_name}:name",
+        ]]),
+        flatten([ for o_name in keys(var.extra_enis) : [
+            { config = o_name, field = "arn",  value = aws_security_group.extra_enis_default[o_name].arn },
+            { config = o_name, field = "id",   value = aws_security_group.extra_enis_default[o_name].id },
+            { config = o_name, field = "name", value = aws_security_group.extra_enis_default[o_name].name },
+        ]])
+    )
+
+    name        = "/${local.outputs_parameter_prefix}extra-eni/${each.value.config}/default-security-group/${each.value.field}"
+    description = "${var.service} bastion host Extra ENI (${each.value.config}) VPC Security Group ${each.value.field}."
+
+    type      = "String"
+    value     = each.value.value
+    overwrite = true
+}
+
 # =========================================================
 # SharedFS
 # =========================================================

@@ -341,7 +341,17 @@ zone of the the public subnets.
 Ideally you should use private subnets or internal subnets, but it is OK to
 use campus subnets or even the same public subnets specified above.
 
-### extra_enis (list of objects)
+### extra_security_groups (list of strings)
+
+List of security group names or IDs in the same VPC as the public subnets.
+These groups will be attached to the primary interface of the bastion hosts.
+
+A standard security group is always included which allows ingress SSH from the
+`allowed_cidrs` and all egress traffic.
+
+Default: `[]`
+
+### extra_enis (map of objects)
 
 *(This is an advanced networking option)*
 
@@ -353,11 +363,12 @@ is limited by the `instance_type` you choose.
 
 Each element in the `extra_enis` list is a map of keys:
 
-| Name         | Required | Description |
-| ------------ | -------- | ----------- |
-| subnets      | Yes      | List of subnet names or IDs to allocate the ENI in. You must specify one in each availability zone of the public subnets. |
-| description  | No       | Optional description to set for the ENI when it is created. |
-| prefix_lists | Yes      | List of prefix list names or IDs, used to adjust the routing table to properly route traffic through this ENI. |
+| Name            | Required | Description |
+| --------------- | -------- | ----------- |
+| subnets         | Yes      | List of subnet names or IDs to allocate the ENI in. You must specify one in each availability zone of the public subnets. |
+| description     | No       | Optional description to set for the ENI when it is created. |
+| prefix_lists    | Yes      | List of prefix list names or IDs, used to adjust the routing table to properly route traffic through this ENI. |
+| security_groups | No       | List of security groups to add to the ENI. It will always have a security group that allows egress. You can add up to 4 with the standard AWS limits. |
 
 Default: `[]`
 

@@ -4,8 +4,8 @@
 
 data "aws_subnet" "extra_enis" {
     for_each = zipmap(
-        flatten([ for o_idx, o in var.extra_enis : [ for v_idx, v in o.subnets : "${o_idx}.${v_idx}" ] ]),
-        flatten(var.extra_enis[*].subnets)
+        flatten([ for o_name, o in var.extra_enis : [ for v_idx, v in o.subnets : "${o_name}.${v_idx}" ] ]),
+        flatten([ for o_name, o in var.extra_enis: o.subnets ])
     )
 
     id   = can(regex("^subnet-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? each.value : null
@@ -16,12 +16,30 @@ data "aws_subnet" "extra_enis" {
 
 data "aws_ec2_managed_prefix_list" "extra_enis" {
     for_each = zipmap(
-        flatten([ for o_idx, o in var.extra_enis : [ for v_idx, v in o.prefix_lists : "${o_idx}.${v_idx}" ] ]),
-        flatten(var.extra_enis[*].prefix_lists)
+        flatten([ for o_name, o in var.extra_enis : [ for v_idx, v in o.prefix_lists : "${o_name}.${v_idx}" ] ]),
+        flatten([ for o_name, o in var.extra_enis : o.prefix_lists ])
     )
 
     id   = can(regex("^pl-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? each.value : null
     name = can(regex("^pl-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? null : each.value
+}
+
+data "aws_vpc" "extra_enis" {
+    for_each = { for o_name, o in var.extra_enis : o_name => data.aws_subnet.extra_enis["${o_name}.0"].vpc_id }
+
+    id = each.value
+}
+
+data "aws_security_group" "extra_enis" {
+    for_each = zipmap(
+        flatten([ for o_name, o in var.extra_enis : [ for s_idx, s in o.security_groups : "${o_name}.${s_idx}" ] ]),
+        flatten([ for o_name, o in var.extra_enis : o.security_groups ])
+    )
+
+    id   = can(regex("^sg-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? each.value : null
+    name = can(regex("^sg-([a-f0-9]{8}|[a-f0-9]{17})$", each.value)) ? null : each.value
+
+    vpc_id = data.aws_vpc.extra_enis[split(".", each.key)[0]].id
 }
 
 # =========================================================
@@ -38,18 +56,17 @@ data "aws_iam_policy_document" "lambda_addExtraENIs" {
         ]
 
         resources = concat(
-            [
-                "arn:aws:ec2:${local.region_name}:${local.account_id}:network-interface/*",
-                aws_security_group.bastion.arn,
-            ],
+            [ "arn:aws:ec2:${local.region_name}:${local.account_id}:network-interface/*" ],
             local.extra_enis_subnet_arns,
+            [ for s in values(aws_security_group.extra_enis_default) : s.arn ],
+            [ for s in values(data.aws_security_group.extra_enis) : s.arn ],
         )
 
         condition {
             test     = "StringEqualsIfExists"
             variable = "aws:RequestTag/Name"
 
-            values = [ local.extra_enis_name ]
+            values = [ for o_name, n in local.extra_enis_names : n.eni ]
         }
 
         dynamic "condition" {
@@ -91,21 +108,11 @@ data "aws_iam_policy_document" "lambda_addExtraENIs" {
             [
                 "arn:aws:ec2:${local.region_name}:${local.account_id}:network-interface/*",
                 "arn:aws:ec2:${local.region_name}:${local.account_id}:instance/*",
-                aws_security_group.bastion.arn,
             ],
             local.extra_enis_subnet_arns,
+            [ for s in values(aws_security_group.extra_enis_default) : s.arn ],
+            [ for s in values(data.aws_security_group.extra_enis) : s.arn ],
         )
-
-        condition {
-            test     = "StringEqualsIfExists"
-            variable = "ec2:ResourceTag/Name"
-
-            values = distinct([
-                local.instance_name,
-                local.extra_enis_name,
-                local.security_group_name,
-            ])
-        }
 
         condition {
             test     = "ArnEqualsIfExists"
@@ -144,26 +151,59 @@ data "aws_iam_policy_document" "lambda_addExtraENIs" {
 # =========================================================
 
 locals {
-    extra_enis_name = "${local.name} Extra ENI"
+    extra_enis_names = { for o_name in keys(var.extra_enis) : o_name => {
+        default_security_group = "${local.name} Extra ENI Default (${o_name})"
+        eni                    = "${local.name} Extra ENI (${o_name})"
+    }}
 
-    extra_enis = [ for o_idx, o in var.extra_enis : merge(
+    extra_enis = { for o_name, o in var.extra_enis : o_name => merge(
         o,
         {
-            subnet_ids = { for v_idx, v in o.subnets : data.aws_subnet.extra_enis["${o_idx}.${v_idx}"].availability_zone => data.aws_subnet.extra_enis["${o_idx}.${v_idx}"].id }
-            prefix_list_ids = [ for v_idx, v in o.prefix_lists : data.aws_ec2_managed_prefix_list.extra_enis["${o_idx}.${v_idx}"].id ]
+            name                      = local.extra_enis_names[o_name].eni
+            subnet_ids                = { for v_idx, v in o.subnets : data.aws_subnet.extra_enis["${o_name}.${v_idx}"].availability_zone => data.aws_subnet.extra_enis["${o_name}.${v_idx}"].id }
+            prefix_list_ids           = [ for v_idx, v in o.prefix_lists : data.aws_ec2_managed_prefix_list.extra_enis["${o_name}.${v_idx}"].id ]
+            default_security_group_id = aws_security_group.extra_enis_default[o_name].id
+            security_group_ids        = concat(
+                [ aws_security_group.extra_enis_default[o_name].id ],
+                [ for s_name, s in data.aws_security_group.extra_enis : s.id if startswith(s_name, "${o_name}.") ],
+            )
         }
-    )]
+    )}
     extra_enis_subnet_ids       = [ for s in data.aws_subnet.extra_enis: s.id ]
     extra_enis_subnet_arns      = [ for s in data.aws_subnet.extra_enis: s.arn ]
     extra_enis_prefix_list_ids  = [ for p in data.aws_ec2_managed_prefix_list.extra_enis : p.id ]
     extra_enis_prefix_list_arns = [ for p in data.aws_ec2_managed_prefix_list.extra_enis : p.arn ]
-    #extra_enis_vpc_ids         = distinct(flatten(local.extra_enis[*].vpc_ids))
-    has_extra_enis             = length(local.extra_enis) > 0
+    has_extra_enis             = length(var.extra_enis) > 0
 }
 
 # =========================================================
 # Resources: addExtraENIs
 # =========================================================
+
+resource "aws_security_group" "extra_enis_default" {
+    for_each = { for o_name, o in var.extra_enis : o_name => {
+        vpc_id          = data.aws_vpc.extra_enis[o_name].id
+        prefix_list_ids = [ for v_idx, v in o.prefix_lists : data.aws_ec2_managed_prefix_list.extra_enis["${o_name}.${v_idx}"].id ]
+        name_tag        = local.extra_enis_names[o_name].default_security_group
+    }}
+
+    name_prefix = local.name_prefix
+    description = "Bastion Extra ENI default group."
+    vpc_id      = each.value.vpc_id
+
+    egress {
+        from_port = 0
+        to_port   = 0
+        protocol  = "-1"
+
+        prefix_list_ids = each.value.prefix_list_ids
+        self            = true
+    }
+
+    tags = {
+        Name = each.value.name_tag
+    }
+}
 
 module "lambda_addExtraENIs" {
     source  = "terraform-aws-modules/lambda/aws"
@@ -176,17 +216,13 @@ module "lambda_addExtraENIs" {
     timeout       = 30
 
     environment_variables = {
-        EXTRA_ENI_CONFIGS = jsonencode([ for o in local.extra_enis : {
-            description = o.description
-            subnet_ids  = o.subnet_ids
-        }])
-        EXTRA_ENI_SECURITY_GROUP_IDS = jsonencode([
-            aws_security_group.bastion.id,
-        ])
-        EXTRA_ENI_TAGS = jsonencode(merge(
-            local.default_tags,
-            { Name = local.extra_enis_name }
-        ))
+        EXTRA_ENI_CONFIGS = jsonencode({ for o_name, o in local.extra_enis : o_name => {
+            name               = o.name
+            description        = o.description
+            subnet_ids         = o.subnet_ids
+            security_group_ids = o.security_group_ids
+        }})
+        EXTRA_ENI_TAGS = jsonencode(local.default_tags)
 
         LOGGING_LEVEL = local.is_debug ? "DEBUG" : "INFO"
     }

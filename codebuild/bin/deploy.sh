@@ -56,6 +56,12 @@ else
     export TF_VAR_internal_subnets="$(_make_hcl_list "$TF_VAR_internal_subnets")"
 fi
 
+if [[ -z $TF_VAR_extra_security_groups ]]; then
+    unset $TF_VAR_extra_security_groups
+else
+    export TF_VAR_extra_security_groups="$(_make_hcl_list "$TF_VAR_extra_security_groups")"
+fi
+
 DEPLOY_DIR="$1"; shift
 if [[ -z $DEPLOY_DIR ]]; then
     echo "ERROR: no terraform directory specified"
