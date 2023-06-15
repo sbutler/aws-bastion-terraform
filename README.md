@@ -345,6 +345,7 @@ use campus subnets or even the same public subnets specified above.
 
 List of security group names or IDs in the same VPC as the public subnets.
 These groups will be attached to the primary interface of the bastion hosts.
+You can add up to 4 with the standard AWS limits.
 
 A standard security group is always included which allows ingress SSH from the
 `allowed_cidrs` and all egress traffic.
@@ -368,16 +369,18 @@ Each element in the `extra_enis` list is a map of keys:
 | subnets         | Yes      | List of subnet names or IDs to allocate the ENI in. You must specify one in each availability zone of the public subnets. |
 | description     | No       | Optional description to set for the ENI when it is created. |
 | prefix_lists    | Yes      | List of prefix list names or IDs, used to adjust the routing table to properly route traffic through this ENI. |
-| security_groups | No       | List of security groups to add to the ENI. It will always have a security group that allows egress. You can add up to 4 with the standard AWS limits. |
+| security_groups | No       | List of security groups to add to the ENI. It will always have a security group that allows egress to the prefix_lists. You can add up to 4 with the standard AWS limits. |
 
-Default: `[]`
+Default: `{}`
 
 ### extra_efs (map of objects)
 
 *(This is an advanced file system option)*
 
 You can optionally have additional EFS's mounted on the bastion hosts to access
-file systems used by your projects.
+file systems used by your projects. These EFS's must be available in the VPC
+the instances are launched in. Do not assume that any extra ENIs will be
+brought online before the instance attempts to mount extra EFS's!
 
 The key in the map is the name of the EFS for the configuration and default
 mount point (although you can override this). Each value of the map is an
@@ -540,6 +543,8 @@ source, and as the attributes of a module.
 - `bastion_public_ip`: string with the public IPv4.
 - `bastion_role`: map with `arn`, `name`, and `unique_id` keys.
 - `bastion_security_group`: map with `arn`, `id`, and `name` keys.
+- `bastion_extra_enis_default_security_groups`: map for each extra ENI, with
+  a map of `arn`, `id`, and `name` keys.
 - `bastion_sharedfs`: map with `arn` and `id` keys.
 
 ### SSM Parameter Store Outputs
@@ -561,3 +566,6 @@ CloudFormation stacks with [dynamic references](https://docs.aws.amazon.com/AWSC
 - `/$project/outputs/security-group/name`: String
 - `/$project/outputs/sharedfs/arn`: String
 - `/$project/outputs/sharedfs/id`: String
+- `/$project/outputs/extra-eni/$name/default-security-group/arn`: String
+- `/$project/outputs/extra-eni/$name/default-security-group/id`: String
+- `/$project/outputs/extra-eni/$name/default-security-group/name`: String
