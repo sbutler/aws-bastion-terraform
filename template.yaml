@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Deploy a UIUC Bastion Host with automation.
 
+## Small changes
 Parameters:
   SourceURL:
     Type: String

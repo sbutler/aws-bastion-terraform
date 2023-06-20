@@ -7,7 +7,7 @@ import logging
 import os
 
 import boto3 #pylint: disable=import-error
-
+# small change
 EIP_ALLOCATION_ID = os.environ['EIP_ALLOCATION_ID']
 LOGGING_LEVEL = getattr(
     logging,
