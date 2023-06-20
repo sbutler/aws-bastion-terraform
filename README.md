@@ -11,9 +11,11 @@ the UOFI AD for authentication. Features:
 - Host Intrusion Detection (ossec) and optionally CrowdStrike Falcon. Repeated
   failed login attempts will cause an IP to be banned.
 - Advanced Networking: an ElasticIP (EIP) will automatically be assigned to
-  newly launched hosts when they are ready, and hosts support additional
-  Elastic Network Interfaces (ENI) with custom routes.
+  newly launched hosts when they are ready, hosts support additional
+  Elastic Network Interfaces (ENI) with custom routes, and mounting of Elastic
+  Filesystems (EFS).
 - Duo Push integration for SSH Password authentication.
+- AWS Systems Manager for patch compliance.
 
 Bastion hosts are designed to be temporary, and configuration changes or AWS
 cloud events can cause a running one to be terminated and a new one launched.
@@ -206,6 +208,20 @@ change them you will need to change the terraform and redeploy it.
 - *CodeBuild Deployment:* CloudFormation will prompt for values when you create
   or update the stack.
 
+These variables must be specified for a minimal deployment:
+
+- Tagging
+  - service
+  - contact
+  - data_classification
+  - project
+- Bastion
+  - hostname
+  - key_name
+- Networking
+  - public_subnets
+  - internal_subnets
+
 ### Tagging
 
 These variables are primarily used for tagging resources.
@@ -231,13 +247,17 @@ Default: `"bastion"`
 
 *CodeBuild Deployment:* the stack name is used for the project name.
 
-### hostname (string)
+### Bastion
+
+Variables that control aspects of the launched instances.
+
+#### hostname (string)
 
 The hostname you will associate with the IP. This is the name the instance
 will use for logging and to register with CrowdStrike. It must be a valid
 domain name.
 
-### instance_type (string)
+#### instance_type (string)
 
 One of the valid [EC2 x86-64 instance types](https://aws.amazon.com/ec2/instance-types/).
 The value you choose will determine the cost of the instance and also
@@ -245,14 +265,14 @@ The value you choose will determine the cost of the instance and also
 
 Default: `t3.micro`
 
-### key_name (string)
+#### key_name (string)
 
 The name of an existing EC2 Key Pair. This is used as the key pair to allow
 emergency access to the bastion host as the `ec2-user`. You should not use this
 key pair for normal bastion host access; instead use your AD credentials or
 AD stored key pair.
 
-### enhanced_monitoring (bool)
+#### enhanced_monitoring (bool)
 
 Collect more fine grained metrics about various services. Enabling this incurs
 extra costs. The bastion host does not use this, although it might be useful
@@ -260,18 +280,20 @@ for your own monitoring.
 
 Default: `false`.
 
-### falcon_sensor_package (string)
+#### falcon_sensor_package (string)
 
 An S3 URL (`s3://bucket/path/to/sensor.rpm`) to download the CrowdStrike Falcon
 Sensor. This bucket should be private (no public access) and the bastion hosts
-will use their instance roles to download the package.
+will use their instance roles to download the package. You should periodically
+update this package in S3 so that newly launched instances get a supported
+version of CrowdStrike Falcon.
 
 If you do not specify this then CrowdStrike Falcon Sensor is not installed on
 the instance.
 
 Default: `null`
 
-### shell_idle_timeout (number)
+#### shell_idle_timeout (number)
 
 The number of seconds before an idle shell is closed/disconnected. CIS
 recommends no longer than 900s (15mins). If this variable is `0` then idle
@@ -279,7 +301,7 @@ shells are not closed.
 
 Default: `900`.
 
-### login_banner (string)
+#### login_banner (string)
 
 Message to display before a user logs into the bastion host. CIS recommends
 this be set to something warning the user about unauthorized access. This
@@ -299,102 +321,7 @@ Default:
 ====================================================================
 ```
 
-### allowed_cidrs (map of objects)
-
-Map of CIDRs allowed to connect to the bastion instance. The key of the map is
-used in the security group description (to help identify why the IP is added)
-and the value of the map is an object with fields `ipv4` and `ipv6`. For each
-field you specify a list of string CIDRs.
-
-Default:
-
-```
-{
-    all = {
-        ipv4 = [ "0.0.0.0/0" ]
-        ipv6 = [ "::/0" ]
-    }
-}
-```
-
-### allowed_cidrs_codebuild (list of strings)
-
-This is the variable used when a CodeBuild deployment is done. **If you are
-using terraform directly then do not specify this value!** It is a list of IPv4
-CIDRs allowed to connect to the bastion instance.
-
-Default: `[]`
-
-### public_subnets (list of strings)
-
-List of public subnet names or IDs where the primary network interface will be
-created, and the public IP assigned. At least one value must be specified, and
-ideally more than one for increased availability. Even with multiple subnets
-specified, only one instance should be running most of the time.
-
-### internal_subnets (list of strings)
-
-List of internal subnet names or IDs where private, internal resources should
-be created. There must be an internal subnet specified for every availability
-zone of the the public subnets.
-
-Ideally you should use private subnets or internal subnets, but it is OK to
-use campus subnets or even the same public subnets specified above.
-
-### extra_security_groups (list of strings)
-
-List of security group names or IDs in the same VPC as the public subnets.
-These groups will be attached to the primary interface of the bastion hosts.
-You can add up to 4 with the standard AWS limits.
-
-A standard security group is always included which allows ingress SSH from the
-`allowed_cidrs` and all egress traffic.
-
-Default: `[]`
-
-### extra_enis (map of objects)
-
-*(This is an advanced networking option)*
-
-You can optionally have additional ENIs attached to the bastion hosts to reach
-resources in other subnets or VPCs, not local to your VPC. For instance, you
-could create a Management VPC for your bastion hosts, and use an additional ENI
-to connect to the application VPC. The number of additional ENIs you can have
-is limited by the `instance_type` you choose.
-
-Each element in the `extra_enis` list is a map of keys:
-
-| Name            | Required | Description |
-| --------------- | -------- | ----------- |
-| subnets         | Yes      | List of subnet names or IDs to allocate the ENI in. You must specify one in each availability zone of the public subnets. |
-| description     | No       | Optional description to set for the ENI when it is created. |
-| prefix_lists    | Yes      | List of prefix list names or IDs, used to adjust the routing table to properly route traffic through this ENI. |
-| security_groups | No       | List of security groups to add to the ENI. It will always have a security group that allows egress to the prefix_lists. You can add up to 4 with the standard AWS limits. |
-
-Default: `{}`
-
-### extra_efs (map of objects)
-
-*(This is an advanced file system option)*
-
-You can optionally have additional EFS's mounted on the bastion hosts to access
-file systems used by your projects. These EFS's must be available in the VPC
-the instances are launched in. Do not assume that any extra ENIs will be
-brought online before the instance attempts to mount extra EFS's!
-
-The key in the map is the name of the EFS for the configuration and default
-mount point (although you can override this). Each value of the map is an
-object with these keys:
-
-| Name          | Required | Description |
-| ------------- | -------- | ----------- |
-| filesystem_id | Yes      | The EFS ID for the filesystem to mount. |
-| mount_point   | No       | Where to mount the filesystem. Default: `/mnt/$name`. |
-| options       | No       | Options to pass to the mount command. Default: `tls,noresvport`. |
-
-Default: `{}`
-
-### cloudinit_scripts (list of strings)
+#### cloudinit_scripts (list of strings)
 
 *(This is an advanced customization option)*
 
@@ -416,7 +343,7 @@ Default: `[]`
 
 *CodeBuild Deployment:* this parameter is not available.
 
-### cloudinit_config (string)
+#### cloudinit_config (string)
 
 *(This is an advanced customization option)*
 
@@ -434,7 +361,112 @@ Default: `null`
 
 *CodeBuild Deployment:* this parameter is not available.
 
-### ssm_maintenance_window_scanning (string)
+### Networking
+
+Variables that control aspects of the networking configuration.
+
+#### allowed_cidrs (map of objects)
+
+Map of CIDRs allowed to connect to the bastion instance. The key of the map is
+used in the security group description (to help identify why the IP is added)
+and the value of the map is an object with fields `ipv4` and `ipv6`. For each
+field you specify a list of string CIDRs.
+
+Default:
+
+```
+{
+    all = {
+        ipv4 = [ "0.0.0.0/0" ]
+        ipv6 = [ "::/0" ]
+    }
+}
+```
+
+#### allowed_cidrs_codebuild (list of strings)
+
+This is the variable used when a CodeBuild deployment is done. **If you are
+using terraform directly then do not specify this value!** It is a list of IPv4
+CIDRs allowed to connect to the bastion instance.
+
+Default: `[]`
+
+#### public_subnets (list of strings)
+
+List of public subnet names or IDs where the primary network interface will be
+created, and the public IP assigned. At least one value must be specified, and
+ideally more than one for increased availability. Even with multiple subnets
+specified, only one instance should be running most of the time.
+
+#### internal_subnets (list of strings)
+
+List of internal subnet names or IDs where private, internal resources should
+be created. There must be an internal subnet specified for every availability
+zone of the the public subnets.
+
+Ideally you should use private subnets or internal subnets, but it is OK to
+use campus subnets or even the same public subnets specified above.
+
+#### extra_security_groups (list of strings)
+
+List of security group names or IDs in the same VPC as the public subnets.
+These groups will be attached to the primary interface of the bastion hosts.
+You can add up to 4 with the standard AWS limits.
+
+A standard security group is always included which allows ingress SSH from the
+`allowed_cidrs` and all egress traffic.
+
+Default: `[]`
+
+#### extra_enis (map of objects)
+
+*(This is an advanced networking option)*
+
+You can optionally have additional ENIs attached to the bastion hosts to reach
+resources in other subnets or VPCs, not local to your VPC. For instance, you
+could create a Management VPC for your bastion hosts, and use an additional ENI
+to connect to the application VPC. The number of additional ENIs you can have
+is limited by the `instance_type` you choose.
+
+Each element in the `extra_enis` list is a map of keys:
+
+| Name            | Required | Description |
+| --------------- | -------- | ----------- |
+| subnets         | Yes      | List of subnet names or IDs to allocate the ENI in. You must specify one in each availability zone of the public subnets. |
+| description     | No       | Optional description to set for the ENI when it is created. |
+| prefix_lists    | Yes      | List of prefix list names or IDs, used to adjust the routing table to properly route traffic through this ENI. |
+| security_groups | No       | List of security groups to add to the ENI. It will always have a security group that allows egress to the prefix_lists. You can add up to 4 with the standard AWS limits. |
+
+Default: `{}`
+
+#### extra_efs (map of objects)
+
+*(This is an advanced file system option)*
+
+You can optionally have additional EFS's mounted on the bastion hosts to access
+file systems used by your projects. These EFS's must be available in the VPC
+the instances are launched in. **Do not assume that any extra ENIs will be
+brought online before the instance attempts to mount extra EFS's.** All EFS's
+should have mount points in the same VPC as `internal_subnets`.
+
+The key in the map is the name of the EFS for the configuration and default
+mount point (although you can override this). Each value of the map is an
+object with these keys:
+
+| Name          | Required | Description |
+| ------------- | -------- | ----------- |
+| filesystem_id | Yes      | The EFS ID for the filesystem to mount. |
+| mount_point   | No       | Where to mount the filesystem. Default: `/mnt/$name`. |
+| options       | No       | Options to pass to the mount command. Default: `tls,noresvport`. |
+
+Default: `{}`
+
+### Patching
+
+Variables that control aspects of host patching and management via AWS Systems
+Manager.
+
+#### ssm_maintenance_window_scanning (string)
 
 An SSM Maintenance Window schedule (usually cron style) that determines when
 SSM will scan an instance for patch compliance. This is only the scanning
@@ -444,7 +476,7 @@ Default: `"cron(30 4 ? * SUN-FRI *)"`
 
 *CodeBuild Deployment:* this parameter is not available.
 
-### ssm_maintenance_window_patching (string)
+#### ssm_maintenance_window_patching (string)
 
 An SSM Maintenance Window schedule (usually cron style) that determines when
 SSM will patch and possibly reboot an instance. Patching is done in the 3 hour
