@@ -1,0 +1,29 @@
+name: Terraform validation
+
+on:
+  pull_request:
+    paths:
+    - '**.tf'
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      TF_INPUT: "false"
+      TF_IN_AUTOMATION: "true"
+      TF_CLI_ARGS: "-no-color"
+    steps:
+    - name: checkout source and submodules
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: "~1.4.5"
+
+    - name: init
+      working-directory: ./terraform
+      run: terraform init
+    - name: validate
+      working-directory: ./terraform
+      run: terraform validate

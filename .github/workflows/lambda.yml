@@ -1,0 +1,28 @@
+name: Lambda Checks
+
+on:
+  pull_request:
+    paths:
+    - 'terraform/lambda/*/src/**'
+    - 'terraform/lambda/*/Makefile'
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+        matrix:
+          lambda_name:
+          - addExtraENIs
+          - associateEIP
+    steps:
+    - name: checkout source and submodules
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: lint
+      working-directory: ./terraform/lambda/${{ matrix.lambda_name }}
+      run: make lint

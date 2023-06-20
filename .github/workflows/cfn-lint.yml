@@ -1,0 +1,20 @@
+name: CloudFormation Template Linter
+
+on:
+  pull_request:
+    paths:
+    - 'template.yaml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout source and submodules
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - name: install linter
+      run: pip3 install --no-cache-dir cfn-lint
+
+    - name: cfn-lint
+      run: cfn-lint template.yaml
