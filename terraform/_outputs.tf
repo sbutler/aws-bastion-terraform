@@ -18,9 +18,8 @@ resource "aws_ssm_parameter" "bastion_autoscaling_group_outputs" {
     name        = "/${local.outputs_parameter_prefix}autoscaling-group/${each.key}"
     description = "${var.service} bastion host AutoScaling Group ${each.key}."
 
-    type      = "String"
-    value     = each.value
-    overwrite = true
+    type  = "String"
+    value = each.value
 }
 
 # =========================================================
@@ -45,9 +44,8 @@ resource "aws_ssm_parameter" "bastion_instance_profile_outputs" {
     name        = "/${local.outputs_parameter_prefix}instance-profile/${each.key}"
     description = "${var.service} bastion host IAM Instance Profile ${each.key}."
 
-    type      = "String"
-    value     = each.value
-    overwrite = true
+    type  = "String"
+    value = each.value
 }
 
 # =========================================================
@@ -62,9 +60,8 @@ resource "aws_ssm_parameter" "bastion_public_ip_output" {
     name        = "/${local.outputs_parameter_prefix}public-ip"
     description = "${var.service} bastion host public IP."
 
-    type      = "String"
-    value     = aws_eip.bastion.public_ip
-    overwrite = true
+    type  = "String"
+    value = aws_eip.bastion.public_ip
 }
 
 # =========================================================
@@ -89,9 +86,8 @@ resource "aws_ssm_parameter" "bastion_role_outputs" {
     name        = "/${local.outputs_parameter_prefix}role/${each.key}"
     description = "${var.service} bastion host IAM Role ${each.key}."
 
-    type      = "String"
-    value     = each.value
-    overwrite = true
+    type  = "String"
+    value = each.value
 }
 
 # =========================================================
@@ -116,9 +112,8 @@ resource "aws_ssm_parameter" "bastion_security_group_outputs" {
     name        = "/${local.outputs_parameter_prefix}security-group/${each.key}"
     description = "${var.service} bastion host VPC Security Group ${each.key}."
 
-    type      = "String"
-    value     = each.value
-    overwrite = true
+    type  = "String"
+    value = each.value
 }
 
 output "bastion_extra_enis_default_security_groups" {
@@ -146,9 +141,8 @@ resource "aws_ssm_parameter" "bastion_extra_enis_default_security_group_outputs"
     name        = "/${local.outputs_parameter_prefix}extra-eni/${each.value.config}/default-security-group/${each.value.field}"
     description = "${var.service} bastion host Extra ENI (${each.value.config}) VPC Security Group ${each.value.field}."
 
-    type      = "String"
-    value     = each.value.value
-    overwrite = true
+    type  = "String"
+    value = each.value.value
 }
 
 # =========================================================
@@ -171,7 +165,6 @@ resource "aws_ssm_parameter" "bastion_sharedfs_outputs" {
     name        = "/${local.outputs_parameter_prefix}sharedfs/${each.key}"
     description = "${var.service} bastion host SharedFS ${each.key}."
 
-    type      = "String"
-    value     = each.value
-    overwrite = true
+    type  = "String"
+    value = each.value
 }

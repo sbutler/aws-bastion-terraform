@@ -57,7 +57,7 @@ data "aws_iam_policy_document" "lambda_associateEIP" {
 # =========================================================
 
 resource "aws_eip" "bastion" {
-    vpc = true
+    domain = "vpc"
 
     tags = {
         Name = local.name
