@@ -207,7 +207,7 @@ resource "aws_security_group" "extra_enis_default" {
 
 module "lambda_addExtraENIs" {
     source  = "terraform-aws-modules/lambda/aws"
-    version = "4.18.0"
+    version = "6.0.0"
 
     function_name = "${local.name_prefix}addExtraENIs"
     description   = "Add extra ENIs to a bastion instance."
