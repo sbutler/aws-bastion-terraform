@@ -306,8 +306,7 @@ EOF
 
 if ! systemctl is-active ossec-hids.service &> /dev/null; then
     illinois_log "enabling and starting ossec"
-    systemctl enable ossec-hids
-    systemctl start ossec-hids
+    systemctl enable --now ossec-hids
 fi
 
 illinois_init_status finished
