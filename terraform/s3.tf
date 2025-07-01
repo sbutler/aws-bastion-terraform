@@ -144,7 +144,7 @@ resource "aws_s3_object" "assets_cloudinit" {
 
     source       = "${path.module}/files/cloud-init/${each.key}"
     content_type = each.value.content_type
-    etag         = filemd5("${path.module}/files/cloud-init/${each.key}")
+    source_hash  = filemd5("${path.module}/files/cloud-init/${each.key}")
 }
 
 resource "aws_s3_object" "assets_extra_scripts" {
@@ -161,7 +161,7 @@ resource "aws_s3_object" "assets_extra_scripts" {
 
     content      = each.value
     content_type = "text/x-shellscript"
-    etag         = md5(each.value)
+    source_hash  = md5(each.value)
 }
 
 resource "aws_s3_object" "assets_extra_config" {
@@ -178,5 +178,5 @@ resource "aws_s3_object" "assets_extra_config" {
 
     content      = local.assets_extra_config
     content_type = "text/cloud-config"
-    etag         = md5(local.assets_extra_config)
+    source_hash  = md5(local.assets_extra_config)
 }
