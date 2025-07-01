@@ -5,14 +5,11 @@
 locals {
     ec2_log_groups = {
         "var/log/audit/audit.log" = {}
-        "var/log/boot.log" = {}
         "var/log/cloud-init.log" = {}
-        "var/log/cron" = {}
-        "var/log/messages" = {}
-        "var/log/secure" = {}
         "var/log/sudo.log" = {}
         "var/ossec/logs/alerts/alerts.json" = {}
         "var/ossec/logs/ossec.log" = {}
+        "journald" = {}
     }
 }
 

@@ -1,3 +1,6 @@
+#cloud-boothook
+#!/bin/bash
+
 write_file () {
     local file="$1"
     local filepath="$(dirname "$file")"
@@ -52,6 +55,7 @@ write_file /etc/opt/illinois/cloud-init/ec2logs.conf << "EOF"
 loggroup_prefix="${loggroup_prefix}"
 metrics_collection_interval=${metrics_collection_interval}
 metrics_namespace=${metrics_namespace}
+journald_cloudwatch_logs_package="${journald_cloudwatch_logs_package}"
 EOF
 
 write_file /etc/opt/illinois/cloud-init/cis.conf << "EOF"
@@ -79,6 +83,10 @@ EOF
 
 write_file /etc/opt/illinois/cloud-init/cron.conf << "EOF"
 cron_allow_parameter="${cron_allow_parameter}"
+EOF
+
+write_file /etc/opt/illinois/cloud-init/network.conf << "EOF"
+internal_subnets=( ${internal_subnets} )
 EOF
 
 write_file /etc/opt/illinois/cloud-init/extra-enis.conf << "EOF"

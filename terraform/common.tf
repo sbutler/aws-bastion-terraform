@@ -18,7 +18,7 @@ data "aws_ec2_instance_type" "bastion" {
 }
 
 locals {
-    region_name = data.aws_region.current.name
+    region_name = data.aws_region.current.region
     account_id  = data.aws_caller_identity.current.account_id
 }
 

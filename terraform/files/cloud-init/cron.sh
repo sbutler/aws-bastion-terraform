@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# Setup cron and harden it. Options available in
+# Setup cron and harden it. Amazon Linux 2023 does not provide cron by default,
+# recommending you move to systemd timers. However, you can install `cronie` if
+# you want the traditional cron experience.
+#
 # /etc/opt/illinois/cloud-init/cron.conf:
 #
 #   cron_allow_parameter: SSM parameter that contains users allowed to use cron.
@@ -8,7 +11,7 @@
 set -e
 ILLINOIS_MODULE=cron
 
-[[ -e /var/lib/illinois-cis-init ]] && exit 0
+[[ $ILLINOIS_FORCE =~ ^(n|no|f|false|0)?$ && -e /var/lib/illinois-cron-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
 
 [[ -e /etc/opt/illinois/cloud-init/cron.conf ]] && . /etc/opt/illinois/cloud-init/cron.conf

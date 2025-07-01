@@ -4,26 +4,29 @@ timezone: America/Chicago
 fqdn: ${hostname}
 
 packages:
+    - at
+    - cronie
     - git
     - ipset
     - ipset-service
     - iptables
     - iptables-services
     - jq
-    - mariadb
-    - mariadb-devel
+    - mariadb1011
+    - openldap
+    - openldap-clients
     - pv
-    - python
-    - python-devel
+    - python3
+    - python3-boto3
+    - python3-botocore
+    - python3-dnf-plugin-post-transaction-actions
     - sssd
     - sudo
     - wget
     - vim
-    - yum-plugin-post-transaction-actions
 
 bootcmd:
-    - [ cloud-init-per, once, pie-install-epel, amazon-linux-extras, install, epel ]
-    - [ cloud-init-per, once, pie-install-devel, yum, install, "-y", "@development", openssl-devel, pam-devel ]
+    - [ cloud-init-per, once, bastion-install-devel, dnf, install, "-y", "@development", openssl-devel, pam-devel, mariadb1011-devel, openldap-devel, python3-devel ]
 
 ssh_pwauth: yes
 repo_update: false

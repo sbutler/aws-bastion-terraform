@@ -2,11 +2,11 @@
 # Data
 # =========================================================
 
-data "aws_ami" "amazon_linux2" {
+data "aws_ami" "amazon_linux2023" {
     most_recent = true
     filter {
         name   = "name"
-        values = [ "amzn2-ami-kernel-5.10-hvm-*-gp2" ]
+        values = [ "al2023-ami-2023.*-kernel-6.1-x86_64" ]
     }
     filter {
         name   = "virtualization-type"
@@ -51,7 +51,7 @@ data "cloudinit_config" "bastion_userdata" {
         content      = templatefile(
             "templates/bastion-cloud-init-configscript.sh",
             {
-                region       = data.aws_region.current.name
+                region       = local.region_name
                 contact      = var.contact
                 asg_name     = local.asg_name
                 prompt_name  = local.name
@@ -72,9 +72,10 @@ data "cloudinit_config" "bastion_userdata" {
                     )
                 )
 
-                loggroup_prefix             = local.loggroup_prefix
-                metrics_namespace           = local.metrics_namespace
-                metrics_collection_interval = var.enhanced_monitoring ? 60 : 300
+                loggroup_prefix                  = local.loggroup_prefix
+                metrics_namespace                = local.metrics_namespace
+                metrics_collection_interval      = var.enhanced_monitoring ? 60 : 300
+                journald_cloudwatch_logs_package = "s3://${aws_s3_object.assets_cloudinit["journald-cloudwatch-logs"].bucket}/${aws_s3_object.assets_cloudinit["journald-cloudwatch-logs"].key}"
 
                 cis_shell_timeout = var.shell_idle_timeout
 
@@ -92,6 +93,11 @@ data "cloudinit_config" "bastion_userdata" {
                 duo_host_parameter = "/${local.duo_parameter_prefix}hostname"
 
                 cron_allow_parameter = "/${local.cron_parameter_prefix}allow"
+
+                internal_subnets = join(" ", formatlist(
+                    "'%s'",
+                    data.aws_subnet.internal[*].cidr_block,
+                ))
 
                 extra_enis_table_id = join(" ", formatlist(
                     "[device-number-%d.%d]='%s'",
@@ -120,11 +126,11 @@ data "cloudinit_config" "bastion_userdata" {
         content = <<EOF
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/init.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/swap.sh
-https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/network.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/efs.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/network.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/extra-enis.sh
-https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ec2logs.yml
-https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/resolv.yml
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ec2logs.sh
+https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/resolv.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/ssh.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/sss.sh
 https://${aws_s3_bucket.assets.bucket_regional_domain_name}/cloud-init/duo.sh
@@ -276,7 +282,7 @@ resource "aws_launch_template" "bastion" {
     name_prefix = local.name_prefix
     description = "Bastion host configuration"
 
-    image_id      = data.aws_ami.amazon_linux2.id
+    image_id      = data.aws_ami.amazon_linux2023.id
     instance_type = var.instance_type
     iam_instance_profile {
         name = aws_iam_instance_profile.bastion.name
@@ -333,7 +339,6 @@ resource "aws_launch_template" "bastion" {
     }
 
     lifecycle {
-        ignore_changes = [ image_id ]
         create_before_destroy = true
     }
 }

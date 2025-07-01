@@ -55,21 +55,22 @@ data "aws_iam_policy_document" "assets" {
 
 locals {
     assets_cloudinit = {
-        "cis.sh"           = { content_type = "text/x-sh" }
-        "cron.sh"          = { content_type = "text/x-sh" }
-        "duo.sh"           = { content_type = "text/x-sh" }
-        "ec2logs.yml"      = { content_type = "text/yaml" }
-        "efs.sh"           = { content_type = "text/x-sh" }
-        "extra-enis.sh"    = { content_type = "text/x-sh" }
-        "falcon-sensor.sh" = { content_type = "text/x-sh" }
-        "init.sh"          = { content_type = "text/x-sh" }
-        "network.sh"       = { content_type = "text/x-sh" }
-        "ossec.sh"         = { content_type = "text/x-sh" }
-        "resolv.yml"       = { content_type = "text/yaml" }
-        "s3-download.sh"   = { content_type = "text/x-sh" }
-        "ssh.sh"           = { content_type = "text/x-sh" }
-        "sss.sh"           = { content_type = "text/x-sh" }
-        "swap.sh"          = { content_type = "text/x-sh" }
+        "cis.sh"                    = { content_type = "text/x-shellscript" }
+        "cron.sh"                   = { content_type = "text/x-shellscript" }
+        "duo.sh"                    = { content_type = "text/x-shellscript" }
+        "ec2logs.sh"                = { content_type = "text/x-shellscript" }
+        "efs.sh"                    = { content_type = "text/cloud-boothook" }
+        "extra-enis.sh"             = { content_type = "text/x-shellscript" }
+        "falcon-sensor.sh"          = { content_type = "text/x-shellscript" }
+        "init.sh"                   = { content_type = "text/cloud-boothook" }
+        "journald-cloudwatch-logs"  = { content_type = "application/octet-stream" }
+        "network.sh"                = { content_type = "text/x-shellscript" }
+        "ossec.sh"                  = { content_type = "text/x-shellscript" }
+        "resolv.sh"                 = { content_type = "text/x-shellscript" }
+        "s3-download.sh"            = { content_type = "text/cloud-boothook" }
+        "ssh.sh"                    = { content_type = "text/x-shellscript" }
+        "sss.sh"                    = { content_type = "text/x-shellscript" }
+        "swap.sh"                   = { content_type = "text/cloud-boothook" }
     }
 
     assets_extra_scripts = { for idx, s in var.cloudinit_scripts : format("script-%03d.sh", idx) => (can(regex("\n", s)) ? s : file(s))}
@@ -84,18 +85,11 @@ resource "aws_s3_bucket" "assets" {
     bucket_prefix = "${local.name_prefix}assets-"
 }
 
-resource "aws_s3_bucket_acl" "assets" {
-    depends_on = [ aws_s3_bucket_ownership_controls.assets ]
-
-    bucket = aws_s3_bucket.assets.bucket
-    acl    = "private"
-}
-
 resource "aws_s3_bucket_ownership_controls" "assets" {
     bucket = aws_s3_bucket.assets.bucket
 
     rule {
-        object_ownership = "BucketOwnerPreferred"
+        object_ownership = "BucketOwnerEnforced"
     }
 }
 
@@ -139,7 +133,6 @@ resource "aws_s3_bucket_versioning" "assets" {
 resource "aws_s3_object" "assets_cloudinit" {
     for_each   = local.assets_cloudinit
     depends_on = [
-        aws_s3_bucket_acl.assets,
         aws_s3_bucket_public_access_block.assets,
         aws_s3_bucket_policy.assets,
         aws_s3_bucket_server_side_encryption_configuration.assets,
@@ -150,7 +143,6 @@ resource "aws_s3_object" "assets_cloudinit" {
     key    = "cloud-init/${each.key}"
 
     source       = "${path.module}/files/cloud-init/${each.key}"
-    acl          = "bucket-owner-full-control"
     content_type = each.value.content_type
     etag         = filemd5("${path.module}/files/cloud-init/${each.key}")
 }
@@ -158,7 +150,6 @@ resource "aws_s3_object" "assets_cloudinit" {
 resource "aws_s3_object" "assets_extra_scripts" {
     for_each   = local.assets_extra_scripts
     depends_on = [
-        aws_s3_bucket_acl.assets,
         aws_s3_bucket_public_access_block.assets,
         aws_s3_bucket_policy.assets,
         aws_s3_bucket_server_side_encryption_configuration.assets,
@@ -169,15 +160,13 @@ resource "aws_s3_object" "assets_extra_scripts" {
     key    = "cloud-init/extra/${each.key}"
 
     content      = each.value
-    content_type = "text/x-sh"
-    acl          = "bucket-owner-full-control"
+    content_type = "text/x-shellscript"
     etag         = md5(each.value)
 }
 
 resource "aws_s3_object" "assets_extra_config" {
     count      = local.assets_extra_config == null ? 0 : 1
     depends_on = [
-        aws_s3_bucket_acl.assets,
         aws_s3_bucket_public_access_block.assets,
         aws_s3_bucket_policy.assets,
         aws_s3_bucket_server_side_encryption_configuration.assets,
@@ -188,7 +177,6 @@ resource "aws_s3_object" "assets_extra_config" {
     key    = "cloud-init/extra/config.yml"
 
     content      = local.assets_extra_config
-    content_type = "text/yaml"
-    acl          = "bucket-owner-full-control"
+    content_type = "text/cloud-config"
     etag         = md5(local.assets_extra_config)
 }

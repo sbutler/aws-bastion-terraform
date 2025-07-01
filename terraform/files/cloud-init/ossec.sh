@@ -42,7 +42,7 @@ if ! ipset list ossec-blocklist6 &> /dev/null; then
 fi
 
 illinois_log "saving ipsets"
-/usr/libexec/ipset/ipset.start-stop save
+IPSET_SAVE_ON_RESTART=yes /usr/libexec/ipset/ipset.start-stop reload
 
 
 # Next, install ossec
@@ -52,7 +52,7 @@ illinois_rpm_install ossec-hids ossec-hids-server
 
 
 # Now, write out an active-response that uses our ipset blocklists
-cat > /var/ossec/active-response/bin/illinois-firewall-drop.sh << "EOF"
+illinois_write_file /var/ossec/active-response/bin/illinois-firewall-drop.sh root:ossec 0550 << "EOF"
 #!/bin/bash
 
 IPSET="/usr/sbin/ipset"
@@ -99,8 +99,6 @@ if ! $IPSET $ARG1 $ARG2 "$IP" -exist; then
     echo "`date` Unable to run (ipset returning != $RES): $0 $1 $2 $3 $4 $5" >> ${LOG_FILE}
 fi
 EOF
-chown root:ossec /var/ossec/active-response/bin/illinois-firewall-drop.sh
-chmod 0550 /var/ossec/active-response/bin/illinois-firewall-drop.sh
 
 # Write out an ossec.conf file
 cat > /var/ossec/etc/ossec-server.conf <<EOF

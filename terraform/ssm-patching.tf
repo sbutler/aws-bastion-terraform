@@ -7,10 +7,10 @@ data "aws_ssm_document" "run_patch_baseline" {
     document_format = "YAML"
 }
 
-data "aws_ssm_patch_baseline" "amazon_linux2" {
+data "aws_ssm_patch_baseline" "amazon_linux2023" {
     owner            = "AWS"
-    name_prefix      = "AWS-AmazonLinux2DefaultPatchBaseline"
-    operating_system = "AMAZON_LINUX_2"
+    name_prefix      = "AWS-AmazonLinux2023DefaultPatchBaseline"
+    operating_system = "AMAZON_LINUX_2023"
 }
 
 data "aws_iam_policy_document" "ssm_patching" {
@@ -101,7 +101,7 @@ resource "time_sleep" "waiton_ssm_patching_role" {
 # =========================================================
 
 resource "aws_ssm_patch_group" "bastion" {
-    baseline_id = data.aws_ssm_patch_baseline.amazon_linux2.id
+    baseline_id = data.aws_ssm_patch_baseline.amazon_linux2023.id
     patch_group = local.asg_name
 }
 

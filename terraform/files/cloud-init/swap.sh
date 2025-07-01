@@ -1,21 +1,22 @@
 #cloud-boothook
+#!/bin/bash
 
-# Creates and activates a swapfile for extra memory. Options available:
+# Creates and activates a swapfile for extra memory.
+#
+# /etc/opt/illinois/cloud-init/swap.conf
 #
 #   swap_file: file to use for swap. Default: /var/vm/swapfile
-#   swap_unit: name of the swap unit file: Default: var-vm-swapfile.swap
 #   swap_size: size for the swapfile. Default: 4G
 
 set -e
 ILLINOIS_MODULE=swap
 
-[[ -e /var/lib/illinois-swap-init ]] && exit 0
+[[ $ILLINOIS_FORCE =~ ^(n|no|f|false|0)?$ && -e /var/lib/illinois-swap-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
 
 [[ -e /etc/opt/illinois/cloud-init/swap.conf ]] && . /etc/opt/illinois/cloud-init/swap.conf
 
 : ${swap_file:=/var/vm/swapfile}
-: ${swap_unit:=var-vm-swapfile.swap}
 : ${swap_size:=4G}
 
 illinois_init_status running
@@ -34,10 +35,12 @@ if [[ ! -e $swap_file ]]; then
 
     mkswap "$swap_file"
 fi
+[[ -e /usr/local/lib/systemd/system ]] || mkdir -p /usr/local/lib/systemd/system
 
-if [[ ! -e "/etc/systemd/system/${swap_unit}" ]]; then
+swap_unit=$(systemd-escape --path --suffix swap "$swap_file")
+if [[ ! -e "/usr/local/lib/systemd/system/$swap_unit" ]]; then
     illinois_log "Creating $swap_unit"
-    illinois_write_file "/etc/systemd/system/${swap_unit}" <<HERE
+    illinois_write_file "/usr/local/lib/systemd/system/$swap_unit" <<HERE
 [Unit]
 Description=Instance Swap
 
@@ -45,13 +48,20 @@ Description=Instance Swap
 What=${swap_file}
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=swap.target
 HERE
+
+    systemctl daemon-reload
 fi
 
-if ! systemctl is-enabled "$swap_unit"; then
+if ! systemctl is-enabled $swap_unit; then
     illinois_log "Enabling $swap_unit"
-    systemctl enable --now "$swap_unit"
+    systemctl enable $swap_unit
+
+    if systemctl is-active swap.target; then
+        illinois_log "Starting $swap_unit"
+        systemctl start $swap_unit
+    fi
 fi
 
 illinois_init_status finished

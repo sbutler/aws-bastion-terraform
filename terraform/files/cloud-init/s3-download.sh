@@ -1,4 +1,4 @@
-#cloud-boothook
+#!/bin/bash
 
 # Takes URLs and downloads them from S3 to a place where we can read them later
 # from cloud-init includes. Options in /etc/opt/illinois/cloud-init/s3-download.conf:
@@ -10,7 +10,7 @@
 set -e
 ILLINOIS_MODULE=s3-download
 
-[[ -e /var/lib/illinois-s3-download-init ]] && exit 0
+[[ $ILLINOIS_FORCE =~ ^(n|no|f|false|0)?$ && -e /var/lib/illinois-s3-download-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
 
 [[ -e /etc/opt/illinois/cloud-init/s3-download.conf ]] || exit 0

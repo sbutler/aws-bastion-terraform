@@ -201,6 +201,15 @@ resource "aws_security_group" "extra_enis_default" {
     description = "Bastion Extra ENI default group."
     vpc_id      = each.value.vpc_id
 
+    ingress {
+        from_port = -1
+        to_port   = -1
+        protocol  = "icmp"
+
+        prefix_list_ids = each.value.prefix_list_ids
+        self            = true
+    }
+
     egress {
         from_port = 0
         to_port   = 0
@@ -217,7 +226,7 @@ resource "aws_security_group" "extra_enis_default" {
 
 module "lambda_addExtraENIs" {
     source  = "terraform-aws-modules/lambda/aws"
-    version = "6.0.0"
+    version = "8.0.1"
 
     function_name = "${local.name_prefix}addExtraENIs"
     description   = "Add extra ENIs to a bastion instance."

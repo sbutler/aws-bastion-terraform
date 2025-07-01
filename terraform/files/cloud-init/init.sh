@@ -1,4 +1,5 @@
 #cloud-boothook
+#!/bin/bash
 
 # Setup the cloud-init system we are going to use. This creates a basic library
 # of bash functions, make sure some required tools are installed, and installs
@@ -45,7 +46,7 @@ illinois_finish () {
     fi
 
     for f in "${tmpfiles[@]}"; do
-        rm -fr -- "$f"
+        rm -fr -- "$f" || :
     done
 }
 trap illinois_finish EXIT
@@ -120,35 +121,45 @@ EOF
 }
 
 illinois_rpm_install () {
+    local pkgs=()
     local pkg
     for pkg in "$@"; do
         if ! rpm -q --quiet $pkg; then
-            local _yum_maxwait=40
-            while [[ -e /var/run/yum.pid && $_yum_maxwait -gt 0 ]] && kill -CHLD $(</var/run/yum.pid); do
-                illinois_log "Waiting for another yum process..."
-                sleep 5
-                (( _yum_maxwait-- )) || :
-            done
-
-            yum -y install $pkg
+            pkgs+=("$pkg")
         fi
     done
+
+    if [[ ${#pkgs[@]} -gt 0 ]]; then
+        local _dnf_maxwait=40
+        while [[ -e /var/cache/dnf/metadata_lock.pid && $_dnf_maxwait -gt 0 ]] && kill -CHLD $(</var/cache/dnf/metadata_lock.pid); do
+            illinois_log "Waiting for another dnf process..."
+            sleep 5
+            (( _dnf_maxwait-- )) || :
+        done
+
+        dnf -y install "${pkgs[@]}"
+    fi
 }
 
 illinois_rpm_remove () {
+    local pkgs=()
     local pkg
     for pkg in "$@"; do
         if rpm -q --quiet $pkg; then
-            local _yum_maxwait=40
-            while [[ -e /var/run/yum.pid && $_yum_maxwait -gt 0 ]] && kill -CHLD $(</var/run/yum.pid); do
-                illinois_log "Waiting for another yum process..."
-                sleep 5
-                (( _yum_maxwait-- )) || :
-            done
-
-            yum -y remove $pkg
+            pkgs+=("$pkg")
         fi
     done
+
+    if [[ ${#pkgs[@]} -gt 0 ]]; then
+        local _dnf_maxwait=40
+        while [[ -e /var/cache/dnf/metadata_lock.pid && $_dnf_maxwait -gt 0 ]] && kill -CHLD $(</var/cache/dnf/metadata_lock.pid); do
+            illinois_log "Waiting for another dnf process..."
+            sleep 5
+            (( _dnf_maxwait-- )) || :
+        done
+
+        dnf -y remove "${pkgs[@]}"
+    fi
 }
 
 illinois_get_param () {
@@ -179,22 +190,88 @@ illinois_get_listparam () {
         fi
     done
 }
+
+illinois_write_sshd_config () {
+    local _sshd_file="$1"
+    local _sshd_modified=no
+
+    local _tmp_file=$(mktemp -t sshd_config.XXXXXXXX); tmpfiles+=("$_tmp_file")
+    cat > "$_tmp_file"
+
+    if ! sshd -t -f "$_tmp_file"; then
+        illinois_log err "unable to validate $_tmp_file"
+        return 1
+    fi
+
+    if [[ ! -e $_sshd_file ]]; then
+        illinois_log "creating $_sshd_file"
+        _sshd_modified=yes
+    elif diff -q "$_tmp_file" "$_sshd_file"; then
+        illinois_log "no changes to $_sshd_file"
+    else
+        local _diff_ec=$?
+        if [[ $_diff_ec -eq 1 ]]; then
+            illinois_log "changes to $_sshd_file"
+            _sshd_modified=yes
+        else
+            illinois_log err "unable to compare $_sshd_file"
+            return $_diff_ec
+        fi
+    fi
+
+    if [[ $_sshd_modified = yes ]]; then
+        cp "$_tmp_file" "$_sshd_file"
+        chown root:root "$_sshd_file"
+        chmod 0600 "$_sshd_file"
+
+        illinois_log "restarting sshd"
+        systemctl restart sshd
+    fi
+}
+
+illinois_write_sudo_config () {
+    local _sudo_file="$1"
+    local _sudo_modified=no
+
+    local _tmp_file=$(mktemp -t sudoers.XXXXXXXX); tmpfiles+=("$_tmp_file")
+    cat > "$_tmp_file"
+
+    if ! visudo -cf "$_tmp_file"; then
+        illinois_log err "unable to validate $_tmp_file"
+        return 1
+    fi
+
+    if [[ ! -e $_sudo_file ]]; then
+        illinois_log "creating $_sudo_file"
+        _sudo_modified=yes
+    elif diff -q "$_tmp_file" "$_sudo_file"; then
+        illinois_log "no changes to $_sudo_file"
+    else
+        local _diff_ec=$?
+        if [[ $_diff_ec -eq 1 ]]; then
+            illinois_log "changes to $_sudo_file"
+            _sudo_modified=yes
+        else
+            illinois_log err "unable to compare $_sudo_file"
+            return $_diff_ec
+        fi
+    fi
+
+    if [[ $_sudo_modified = yes ]]; then
+        cp "$_tmp_file" "$_sudo_file"
+        chown root:root "$_sudo_file"
+        chmod 0640 "$_sudo_file"
+    fi
+}
 EOF_INIT
 
 ILLINOIS_MODULE=awscli
-[[ -e /var/lib/illinois-awscli-init ]] && exit 0
+[[ $ILLINOIS_FORCE =~ ^(n|no|f|false|0)?$ && -e /var/lib/illinois-awscli-init ]] && exit 0
 . /etc/opt/illinois/cloud-init/init.sh
 
-illinois_rpm_install jq
-illinois_rpm_remove awscli
+illinois_rpm_install jq awscli-2
 
 illinois_init_status running
-
-cd /tmp
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-./aws/install
-rm -fr awscliv2.zip aws
 
 aws configure set default.region $(illinois_aws_metadata placement/region)
 aws configure set s3.signature_version s3v4
