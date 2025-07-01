@@ -93,10 +93,17 @@ data "cloudinit_config" "bastion_userdata" {
 
                 cron_allow_parameter = "/${local.cron_parameter_prefix}allow"
 
+                extra_enis_table_id = join(" ", formatlist(
+                    "[device-number-%d.%d]='%s'",
+                    [ for c in local.extra_enis : c.device_index ],
+                    [ for c in local.extra_enis : c.network_card_index ],
+                    [ for c in local.extra_enis : c.table_id ],
+                ))
                 extra_enis_prefix_list_ids = join(" ", formatlist(
-                    "[eth%d]='%s'",
-                    [ for i in range(length(local.extra_enis)) : i + 1 ],
-                    [ for o in values(local.extra_enis) : join(" ", o.prefix_list_ids) ]
+                    "[device-number-%d.%d]='%s'",
+                    [ for c in local.extra_enis : c.device_index ],
+                    [ for c in local.extra_enis : c.network_card_index ],
+                    [ for c in local.extra_enis : join(" ", c.prefix_list_ids) ],
                 ))
 
                 falcon_sensor_package  = var.falcon_sensor_package == null ? "" : var.falcon_sensor_package

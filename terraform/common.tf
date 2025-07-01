@@ -6,6 +6,17 @@ data "aws_region" "current" {}
 
 data "aws_caller_identity" "current" {}
 
+data "aws_ec2_instance_type" "bastion" {
+    instance_type = var.instance_type
+
+    lifecycle {
+        postcondition {
+            condition     = length(var.extra_enis) < self.maximum_network_interfaces
+            error_message = "The number of extra ENIs exceeds the maximum network interfaces for the instance type."
+        }
+    }
+}
+
 locals {
     region_name = data.aws_region.current.name
     account_id  = data.aws_caller_identity.current.account_id

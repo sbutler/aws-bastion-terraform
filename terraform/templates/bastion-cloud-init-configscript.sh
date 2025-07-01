@@ -82,6 +82,7 @@ cron_allow_parameter="${cron_allow_parameter}"
 EOF
 
 write_file /etc/opt/illinois/cloud-init/extra-enis.conf << "EOF"
+declare -A extra_enis_table_id=( ${extra_enis_table_id} )
 declare -A extra_enis_prefix_list_ids=( ${extra_enis_prefix_list_ids} )
 EOF
 

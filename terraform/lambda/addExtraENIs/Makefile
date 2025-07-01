@@ -1,8 +1,8 @@
 REQUIREMENTS = src/requirements.txt
 SOURCES = src/add_extra_enis.py
-PYTHON = python3.10
+PYTHON = python3.12
 
-.PHONY: clean build lint dist .venv .deps .src
+.PHONY: clean build lint dist .builddir .deps .src .venv
 
 .builddir:
 	mkdir -p build
@@ -15,6 +15,9 @@ PYTHON = python3.10
 
 .venv:
 	[ -e "$@" ] || $(PYTHON) -mvenv $@
+
+clean:
+	rm -fr -- .venv build dist/addExtraENIs.zip
 
 build: .deps .src
 

@@ -155,13 +155,23 @@ locals {
         default_security_group = "${local.name} Extra ENI Default (${o_name})"
         eni                    = "${local.name} Extra ENI (${o_name})"
     }}
+    extra_enis_attachment = flatten([
+        for network_card in data.aws_ec2_instance_type.bastion.network_cards : [
+            for device_idx in range(network_card.index == 0 ? 1 : 0, network_card.maximum_interfaces) : {
+                device_index       = device_idx
+                network_card_index = network_card.index
+                table_id           = 10000 + 100 * network_card.index + device_idx
+            }
+        ]
+    ])
 
-    extra_enis = { for o_name, o in var.extra_enis : o_name => merge(
-        o,
+    extra_enis = { for o_idx, o_name in keys(var.extra_enis) : o_name => merge(
+        var.extra_enis[o_name],
+        local.extra_enis_attachment[o_idx],
         {
             name                      = local.extra_enis_names[o_name].eni
-            subnet_ids                = { for v_idx, v in o.subnets : data.aws_subnet.extra_enis["${o_name}.${v_idx}"].availability_zone => data.aws_subnet.extra_enis["${o_name}.${v_idx}"].id }
-            prefix_list_ids           = [ for v_idx, v in o.prefix_lists : data.aws_ec2_managed_prefix_list.extra_enis["${o_name}.${v_idx}"].id ]
+            subnet_ids                = { for v_idx, v in var.extra_enis[o_name].subnets : data.aws_subnet.extra_enis["${o_name}.${v_idx}"].availability_zone => data.aws_subnet.extra_enis["${o_name}.${v_idx}"].id }
+            prefix_list_ids           = [ for v_idx, v in var.extra_enis[o_name].prefix_lists : data.aws_ec2_managed_prefix_list.extra_enis["${o_name}.${v_idx}"].id ]
             default_security_group_id = aws_security_group.extra_enis_default[o_name].id
             security_group_ids        = concat(
                 [ aws_security_group.extra_enis_default[o_name].id ],
@@ -212,7 +222,7 @@ module "lambda_addExtraENIs" {
     function_name = "${local.name_prefix}addExtraENIs"
     description   = "Add extra ENIs to a bastion instance."
     handler       = "add_extra_enis.lambda_handler"
-    runtime       = "python3.10"
+    runtime       = "python3.12"
     timeout       = 30
 
     environment_variables = {
@@ -221,6 +231,8 @@ module "lambda_addExtraENIs" {
             description        = o.description
             subnet_ids         = o.subnet_ids
             security_group_ids = o.security_group_ids
+            device_index       = o.device_index
+            network_card_index = o.network_card_index
         }})
         EXTRA_ENI_TAGS = jsonencode(local.default_tags)
 

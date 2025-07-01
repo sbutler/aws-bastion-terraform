@@ -47,7 +47,7 @@ def get_instance_region(instance_id):
 
     return instances[0]['Placement']['AvailabilityZone']
 
-def add_extra_eni(instance_id, region_name, config_idx, config):
+def add_extra_eni(instance_id, region_name, config):
     """
     Adds an extra ENI to an instance in the specified subnet. This interface
     will be configured (if possible) to delete when the instance is terminated.
@@ -55,7 +55,6 @@ def add_extra_eni(instance_id, region_name, config_idx, config):
     Args:
         instance_id (str): ID of the instance.
         region_name (str): Name of the region the instance is in.
-        config_idx (int): Index of the ENI config in our settings.
         config (dict): Configuration of the ENI.
 
     Returns:
@@ -89,10 +88,10 @@ def add_extra_eni(instance_id, region_name, config_idx, config):
             'instance': instance_id,
         })
         resp = ec2_clnt.attach_network_interface(
-            DeviceIndex=(config_idx + 1),
+            DeviceIndex=config['device_index'],
             InstanceId=instance_id,
             NetworkInterfaceId=eni_id,
-            NetworkCardIndex=config_idx,
+            NetworkCardIndex=config['network_card_index'],
         )
     except Exception: #pylint: disable=broad-except
         # Cleanup the ENI and re-raise
@@ -165,7 +164,7 @@ def lambda_handler(event, context):
             'config': config,
         })
         try:
-            eni_id = add_extra_eni(instance_id, region_name, config_idx, config)
+            eni_id = add_extra_eni(instance_id, region_name, config)
         except Exception: #pylint: disable=broad-except
             logger.exception(
                 'Unable to create ENI #%(idx)d (%(config_name)s)',

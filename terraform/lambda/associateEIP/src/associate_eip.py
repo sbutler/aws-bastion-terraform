@@ -48,10 +48,15 @@ def get_instance_primary_interface(instance_id):
     interfaces = resp.get('NetworkInterfaces', [])
     if not interfaces:
         raise ValueError('Unable to get instance primary network interface')
-    if len(interfaces) > 1:
-        logger.warning('Found multiple matching interfaces: %(data)r', {'data': interfaces})
 
-    return interfaces[0]['NetworkInterfaceId']
+    for interface in interfaces:
+        if interface['Attachment']['NetworkCardIndex'] == 0:
+            logger.debug('Found primary network interface: %(eni_id)s', {
+                'eni_id': interface['NetworkInterfaceId'],
+            })
+            return interface['NetworkInterfaceId']
+
+    raise ValueError('No primary network interface found')
 
 def lambda_handler(event, context):
     """

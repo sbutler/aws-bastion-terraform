@@ -79,7 +79,7 @@ module "lambda_associateEIP" {
     function_name = "${local.name_prefix}associateEIP"
     description   = "Associate an EIP with a bastion instance."
     handler       = "associate_eip.lambda_handler"
-    runtime       = "python3.10"
+    runtime       = "python3.12"
     timeout       = 30
 
     environment_variables = {
