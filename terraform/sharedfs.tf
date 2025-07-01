@@ -29,8 +29,9 @@ resource "aws_security_group" "sharedfs" {
 }
 
 resource "aws_efs_file_system" "sharedfs" {
-    encrypted  = true
-    kms_key_id = aws_kms_key.data.arn
+    throughput_mode = "elastic"
+    encrypted       = true
+    kms_key_id      = aws_kms_key.data.arn
 
     tags = {
         Name               = "${local.name_prefix}sharedfs"
