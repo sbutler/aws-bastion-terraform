@@ -21,9 +21,8 @@ terraform {
 
     /* CHANGEME: Uncomment to use as a standalone
     backend "s3" {
-        bucket         = "deploy-bastion-CHANGEME"
-        key            = "bastion/state.tfstate"
-        dynamodb_table = "terraform"
+        bucket = "deploy-bastion-CHANGEME"
+        key    = "bastion/state.tfstate"
 
         encrypt    = true
 

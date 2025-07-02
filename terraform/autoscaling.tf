@@ -372,4 +372,11 @@ resource "aws_autoscaling_group" "bastion" {
         id      = aws_launch_template.bastion.id
         version = aws_launch_template.bastion.latest_version
     }
+
+    lifecycle {
+        precondition {
+            condition     = length(setsubtract(local.public_subnet_azs, local.internal_subnet_azs)) == 0
+            error_message = "Not all internal subnets are in the same availability zones as the public subnets."
+        }
+    }
 }

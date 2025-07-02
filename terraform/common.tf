@@ -90,9 +90,11 @@ locals {
 
     public_subnet_ids   = data.aws_subnet.public[*].id
     public_subnet_is_id = [ for s in var.public_subnets : can(regex("^subnet-([a-f0-9]{8}|[a-f0-9]{17})$", s)) ]
+    public_subnet_azs   = distinct(data.aws_subnet.public[*].availability_zone)
 
     internal_subnet_ids   = data.aws_subnet.internal[*].id
     internal_subnet_is_id = [ for s in var.internal_subnets : can(regex("^subnet-([a-f0-9]{8}|[a-f0-9]{17})$", s)) ]
+    internal_subnet_azs   = distinct(data.aws_subnet.internal[*].availability_zone)
 }
 
 # =========================================================

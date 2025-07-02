@@ -50,9 +50,9 @@ Additionally, you must have these features enabled on the VPC:
 
 ### Terraform Remote State
 
-You should have an S3 bucket and DynamoDB table for storing the terraform
-remote state. You can use the same bucket (but with a different state key) and
-table you used for the Enterprise VPC.
+You should have an S3 bucket for storing the terraform remote state. You can
+use the same bucket (but with a different state key) you used for the
+Enterprise VPC.
 
 ### UOFI Active Directory
 
@@ -447,7 +447,7 @@ You can optionally have additional EFS's mounted on the bastion hosts to access
 file systems used by your projects. These EFS's must be available in the VPC
 the instances are launched in. **Do not assume that any extra ENIs will be
 brought online before the instance attempts to mount extra EFS's.** All EFS's
-should have mount points in the same VPC as `internal_subnets`.
+should have mount targets in the same VPC as `internal_subnets`.
 
 The key in the map is the name of the EFS for the configuration and default
 mount point (although you can override this). Each value of the map is an

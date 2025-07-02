@@ -152,11 +152,31 @@ variable "allowed_cidrs_codebuild" {
 variable "public_subnets" {
     type        = list(string)
     description = "Subnet names for public access where the primary IP will be."
+
+    validation {
+        condition     = length(var.public_subnets) > 0
+        error_message = "You must specify at least one public subnet."
+    }
+
+    validation {
+        condition     = alltrue([ for s in var.public_subnets : length(s) > 0 ])
+        error_message = "The value cannot be empty."
+    }
 }
 
 variable "internal_subnets" {
     type        = list(string)
     description = "Subnet names to use for internal resources unreachable from outside the VPC."
+
+    validation {
+        condition     = length(var.internal_subnets) > 0
+        error_message = "You must specify at least one public subnet."
+    }
+
+    validation {
+        condition     = alltrue([ for s in var.internal_subnets : length(s) > 0 ])
+        error_message = "The value cannot be empty."
+    }
 }
 
 variable "extra_security_groups" {
